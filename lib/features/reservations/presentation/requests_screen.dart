@@ -7,6 +7,7 @@ import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../data/reservation_service.dart';
 import '../../checkin/presentation/qr_display_screen.dart';
+import '../../disputes/presentation/open_dispute_screen.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -74,6 +75,21 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
           reservationId: reservation.id,
           playerId: player.id,
           teamId: reservation.teamId,
+        ),
+      ),
+    );
+  }
+
+  void _openDispute(Reservation reservation) {
+    final profile = ref.read(currentProfileProvider).valueOrNull;
+    if (profile == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OpenDisputeScreen(
+          reservationId: reservation.id,
+          userId: profile.id,
         ),
       ),
     );
@@ -147,6 +163,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
                                     r.status == ReservationStatus.confirmed)
                                 ? () => _showQR(r)
                                 : null,
+                            onOpenDispute: (r.status == ReservationStatus.cancelled ||
+                                    r.status == ReservationStatus.rejected)
+                                ? () => _openDispute(r)
+                                : null,
                           ),
                         ),
                       ],
@@ -163,6 +183,7 @@ class _ReservationCard extends StatelessWidget {
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
   final VoidCallback? onShowQR;
+  final VoidCallback? onOpenDispute;
 
   const _ReservationCard({
     required this.reservation,
@@ -170,6 +191,7 @@ class _ReservationCard extends StatelessWidget {
     this.onAccept,
     this.onReject,
     this.onShowQR,
+    this.onOpenDispute,
   });
 
   Color _getStatusColor() {
@@ -299,6 +321,21 @@ class _ReservationCard extends StatelessWidget {
                   label: const Text('Mostrar QR de Check-in'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1B5E20),
+                  ),
+                ),
+              ),
+            ],
+            if (reservation.status == ReservationStatus.cancelled ||
+                reservation.status == ReservationStatus.rejected) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onOpenDispute,
+                  icon: const Icon(Icons.gavel),
+                  label: const Text('Abrir disputa'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange,
                   ),
                 ),
               ),
