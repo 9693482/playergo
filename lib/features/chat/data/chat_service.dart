@@ -4,6 +4,7 @@ class Chat {
   final String id;
   final String playerId;
   final String teamId;
+  final String? reservationId;
   final String? lastMessage;
   final DateTime? lastMessageAt;
   final int unreadCountPlayer;
@@ -16,6 +17,7 @@ class Chat {
     required this.id,
     required this.playerId,
     required this.teamId,
+    this.reservationId,
     this.lastMessage,
     this.lastMessageAt,
     this.unreadCountPlayer = 0,
@@ -30,6 +32,7 @@ class Chat {
       id: map['id'] as String,
       playerId: map['player_id'] as String,
       teamId: map['team_id'] as String,
+      reservationId: map['reservation_id'] as String?,
       lastMessage: map['last_message'] as String?,
       lastMessageAt: map['last_message_at'] != null
           ? DateTime.parse(map['last_message_at'] as String)
@@ -147,13 +150,20 @@ class ChatService {
     return data?['id'] as String?;
   }
 
-  Future<Chat> getOrCreateChat(String playerId, String teamId) async {
-    final existing = await _client
+  Future<Chat> getOrCreateChat(String playerId, String teamId, {String? reservationId}) async {
+    var query = _client
         .from('chats')
         .select()
         .eq('player_id', playerId)
-        .eq('team_id', teamId)
-        .maybeSingle();
+        .eq('team_id', teamId);
+
+    if (reservationId != null) {
+      query = query.eq('reservation_id', reservationId);
+    } else {
+      query = query.isFilter('reservation_id', null);
+    }
+
+    final existing = await query.maybeSingle();
 
     if (existing != null) {
       return Chat.fromMap(existing);
@@ -164,6 +174,7 @@ class ChatService {
         .insert({
           'player_id': playerId,
           'team_id': teamId,
+          'reservation_id': reservationId,
         })
         .select()
         .single();

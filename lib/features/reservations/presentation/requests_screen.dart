@@ -9,6 +9,8 @@ import '../../../shared/models/enums/enums.dart';
 import '../data/reservation_service.dart';
 import '../../checkin/presentation/qr_display_screen.dart';
 import '../../disputes/presentation/open_dispute_screen.dart';
+import '../../chat/data/chat_service.dart';
+import '../../chat/presentation/chat_screen.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -96,6 +98,31 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
     );
   }
 
+  Future<void> _openChat(Reservation reservation) async {
+    final player = ref.read(currentPlayerProvider).valueOrNull;
+    if (player == null) return;
+
+    final chatService = ChatService();
+    final chat = await chatService.getOrCreateChat(
+      player.id,
+      reservation.teamId,
+      reservationId: reservation.id,
+    );
+
+    final teamName = await chatService.getTeamName(reservation.teamId);
+
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          chatId: chat.id,
+          otherName: teamName ?? 'Equipo',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final pendingReservations =
@@ -168,6 +195,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
                                     r.status == ReservationStatus.rejected)
                                 ? () => _openDispute(r)
                                 : null,
+                            onChat: (r.status == ReservationStatus.accepted ||
+                                    r.status == ReservationStatus.confirmed)
+                                ? () => _openChat(r)
+                                : null,
                           ),
                         ),
                       ],
@@ -185,6 +216,7 @@ class _ReservationCard extends StatelessWidget {
   final VoidCallback? onReject;
   final VoidCallback? onShowQR;
   final VoidCallback? onOpenDispute;
+  final VoidCallback? onChat;
 
   const _ReservationCard({
     required this.reservation,
@@ -193,6 +225,7 @@ class _ReservationCard extends StatelessWidget {
     this.onReject,
     this.onShowQR,
     this.onOpenDispute,
+    this.onChat,
   });
 
   Color _getStatusColor() {
@@ -320,6 +353,18 @@ class _ReservationCard extends StatelessWidget {
                   onPressed: onShowQR,
                   icon: const Icon(Icons.qr_code),
                   label: const Text('Mostrar QR de Check-in'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1B5E20),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onChat,
+                  icon: const Icon(Icons.chat),
+                  label: const Text('Chat con el equipo'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF1B5E20),
                   ),

@@ -9,6 +9,8 @@ import '../../../shared/models/enums/enums.dart';
 import '../data/reservation_service.dart';
 import '../../payments/presentation/payment_screen.dart';
 import '../../ratings/presentation/rate_screen.dart';
+import '../../chat/data/chat_service.dart';
+import '../../chat/presentation/chat_screen.dart';
 
 class ReservationsScreen extends ConsumerStatefulWidget {
   const ReservationsScreen({super.key});
@@ -183,6 +185,41 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF1B5E20),
                                       foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (r.status == ReservationStatus.paid ||
+                                  r.status == ReservationStatus.confirmed) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final team = ref.read(currentTeamProvider).valueOrNull;
+                                      if (team == null) return;
+                                      final chatService = ChatService();
+                                      final chat = await chatService.getOrCreateChat(
+                                        r.playerId,
+                                        team.id,
+                                        reservationId: r.id,
+                                      );
+                                      final playerName = await chatService.getPlayerName(r.playerId);
+                                      if (!mounted) return;
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ChatScreen(
+                                            chatId: chat.id,
+                                            otherName: playerName ?? 'Jugador',
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.chat),
+                                    label: const Text('Chat con el jugador'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF1B5E20),
                                     ),
                                   ),
                                 ),
