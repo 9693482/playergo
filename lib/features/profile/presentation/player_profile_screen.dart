@@ -1,11 +1,14 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
-import '../../verification/presentation/verification_screen.dart';
 
 class PlayerProfileScreen extends ConsumerWidget {
   const PlayerProfileScreen({super.key});
@@ -16,200 +19,278 @@ class PlayerProfileScreen extends ConsumerWidget {
     final player = ref.watch(currentPlayerProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.verified_user),
-            tooltip: 'Verificar identidad',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const VerificationScreen(),
-                ),
-              );
-            },
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
+        child: profile.when(
+          data: (p) {
+            if (p == null) {
+              return const Center(child: Text('Perfil no encontrado'));
+            }
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildHeader(p, player),
+                  const SizedBox(height: AppSpacing.lg),
+                  _buildInfoSection(context, p, player),
+                  const SizedBox(height: AppSpacing.lg),
+                  if (p.id.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: _buildRatingsSection(p),
+                    ),
+                  const SizedBox(height: AppSpacing.xxxl),
+                ],
+              ),
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {},
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(dynamic p, AsyncValue<dynamic> player) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      decoration: const BoxDecoration(
+        color: AppColors.darkSurface,
+        border: Border(
+          bottom: BorderSide(color: AppColors.darkSurfaceVariant, width: 0.5),
+        ),
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 48,
+            backgroundColor: AppColors.primary,
+            backgroundImage: p.photoUrl != null
+                ? NetworkImage(p.photoUrl!)
+                : null,
+            child: p.photoUrl == null
+                ? Text(
+                    (p.fullName ?? 'J')[0].toUpperCase(),
+                    style: AppTypography.h1.copyWith(
+                      color: AppColors.textOnPrimary,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            p.fullName ?? 'Sin nombre',
+            style: AppTypography.h2.copyWith(
+              color: AppColors.darkTextPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: p.role == UserRole.player
+                  ? AppColors.primary.withAlpha(30)
+                  : AppColors.warning.withAlpha(30),
+              borderRadius: AppRadius.full,
+            ),
+            child: Text(
+              p.role == UserRole.player ? 'JUGADOR' : 'EQUIPO',
+              style: AppTypography.caption.copyWith(
+                color: p.role == UserRole.player
+                    ? AppColors.primary
+                    : AppColors.warning,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          _buildVerificationBadge(p),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerificationBadge(dynamic p) {
+    final color = _getVerificationColor(p.verificationStatus.name);
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withAlpha(30),
+        borderRadius: AppRadius.full,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            _getVerificationIcon(p.verificationStatus.name),
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            _getVerificationText(p.verificationStatus.name),
+            style: AppTypography.caption.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
-      body: profile.when(
-        data: (p) {
-          if (p == null) return const Center(child: Text('Perfil no encontrado'));
+    );
+  }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFF1B5E20),
-                    backgroundImage: p.photoUrl != null
-                        ? NetworkImage(p.photoUrl!)
-                        : null,
-                    child: p.photoUrl == null
-                        ? Text(
-                            (p.fullName ?? 'J')[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 40,
-                              color: Colors.white,
-                            ),
-                          )
-                        : null,
+  Widget _buildInfoSection(
+    BuildContext context,
+    dynamic p,
+    AsyncValue<dynamic> player,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: player.when(
+        data: (pl) {
+          if (pl == null) {
+            return Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.xxl),
+              decoration: BoxDecoration(
+                color: AppColors.darkSurface,
+                borderRadius: AppRadius.medium,
+              ),
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.sports_soccer,
+                    size: 48,
+                    color: AppColors.darkTextSecondary,
                   ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    p.fullName ?? 'Sin nombre',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'Aun no tienes perfil de jugador',
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.darkTextSecondary,
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: p.role == UserRole.player
-                          ? Colors.blue[100]
-                          : Colors.orange[100],
-                      borderRadius: BorderRadius.circular(20),
+                  const SizedBox(height: AppSpacing.lg),
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.medium,
+                      ),
                     ),
                     child: Text(
-                      p.role == UserRole.player ? 'JUGADOR' : 'EQUIPO',
-                      style: TextStyle(
-                        color: p.role == UserRole.player
-                            ? Colors.blue[800]
-                            : Colors.orange[800],
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                      'Completar perfil',
+                      style: AppTypography.button,
                     ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getVerificationColor(p.verificationStatus.name).withAlpha(25),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          _getVerificationIcon(p.verificationStatus.name),
-                          size: 14,
-                          color: _getVerificationColor(p.verificationStatus.name),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          _getVerificationText(p.verificationStatus.name),
-                          style: TextStyle(
-                            color: _getVerificationColor(p.verificationStatus.name),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                player.when(
-                  data: (pl) {
-                    if (pl == null) {
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.sports_soccer, size: 48, color: Colors.grey),
-                              const SizedBox(height: 8),
-                              const Text('Aún no tienes perfil de jugador'),
-                              const SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () {},
-                                child: const Text('Completar perfil'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-
-                    return Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _InfoRow(icon: Icons.email, label: 'Correo', value: p.email ?? '-'),
-                            const Divider(),
-                            _InfoRow(icon: Icons.phone, label: 'Teléfono', value: p.phone ?? '-'),
-                            const Divider(),
-                            _InfoRow(
-                              icon: Icons.star,
-                              label: 'Calificación',
-                              value: pl.rating.toStringAsFixed(1),
-                            ),
-                            const Divider(),
-                            _InfoRow(
-                              icon: Icons.sports,
-                              label: 'Partidos',
-                              value: pl.completedMatches.toString(),
-                            ),
-                            const Divider(),
-                            _InfoRow(
-                              icon: Icons.attach_money,
-                              label: 'Precio/partido',
-                              value: CurrencyInfo.format(pl.pricePerMatch, CurrencyInfo.fromCountryCode('CO')),
-                            ),
-                            const Divider(),
-                            _InfoRow(
-                              icon: Icons.work,
-                              label: 'Experiencia',
-                              value: '${pl.experienceYears} años',
-                            ),
-                            const Divider(),
-                            _InfoRow(
-                              icon: Icons.circle,
-                              label: 'Disponible',
-                              value: pl.availabilityStatus ? 'Sí' : 'No',
-                              valueColor: pl.availabilityStatus ? Colors.green : Colors.red,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                  loading: () => const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Center(child: Text('Error: $e')),
-                ),
-                if (p.id.isNotEmpty) ...[
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Calificaciones',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  RatingSummaryWidget(userId: p.id),
                 ],
+              ),
+            );
+          }
+
+          return Container(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface,
+              borderRadius: AppRadius.medium,
+            ),
+            child: Column(
+              children: [
+                _InfoRow(
+                  icon: Icons.email_outlined,
+                  label: 'Correo',
+                  value: p.email ?? '-',
+                ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.phone_outlined,
+                  label: 'Telefono',
+                  value: p.phone ?? '-',
+                ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.star_outline,
+                  label: 'Calificacion',
+                  value: pl.rating.toStringAsFixed(1),
+                  valueColor: AppColors.warning,
+                ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.sports_soccer_outlined,
+                  label: 'Partidos',
+                  value: pl.completedMatches.toString(),
+                ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.attach_money,
+                  label: 'Precio/partido',
+                  value: CurrencyInfo.format(
+                    pl.pricePerMatch,
+                    CurrencyInfo.fromCountryCode('CO'),
+                  ),
+                  valueColor: AppColors.primary,
+                ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.work_outline,
+                  label: 'Experiencia',
+                  value: '${pl.experienceYears} anios',
+                ),
+                const _Divider(),
+                _InfoRow(
+                  icon: Icons.circle,
+                  label: 'Disponible',
+                  value: pl.availabilityStatus ? 'Si' : 'No',
+                  valueColor: pl.availabilityStatus
+                      ? AppColors.success
+                      : AppColors.error,
+                ),
               ],
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
         error: (e, _) => Center(child: Text('Error: $e')),
+      ),
+    );
+  }
+
+  Widget _buildRatingsSection(dynamic p) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: AppRadius.medium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Calificaciones',
+            style: AppTypography.subtitle1.copyWith(
+              color: AppColors.darkTextPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          RatingSummaryWidget(userId: p.id),
+        ],
       ),
     );
   }
@@ -217,15 +298,15 @@ class PlayerProfileScreen extends ConsumerWidget {
   Color _getVerificationColor(String? status) {
     switch (status) {
       case 'VERIFIED':
-        return Colors.green;
+        return AppColors.success;
       case 'PENDING':
-        return Colors.orange;
+        return AppColors.warning;
       case 'REJECTED':
-        return Colors.red;
+        return AppColors.error;
       case 'SUSPENDED':
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
       default:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -249,7 +330,7 @@ class PlayerProfileScreen extends ConsumerWidget {
       case 'VERIFIED':
         return 'Verificado';
       case 'PENDING':
-        return 'En revisión';
+        return 'En revision';
       case 'REJECTED':
         return 'Rechazado';
       case 'SUSPENDED':
@@ -257,6 +338,21 @@ class PlayerProfileScreen extends ConsumerWidget {
       default:
         return 'Sin verificar';
     }
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Divider(
+        color: AppColors.darkSurfaceVariant,
+        height: 1,
+      ),
+    );
   }
 }
 
@@ -275,21 +371,29 @@ class _InfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(label, style: TextStyle(color: Colors.grey[600])),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: valueColor,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.darkTextSecondary),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.body2.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
           ),
-        ),
-      ],
+          Text(
+            value,
+            style: AppTypography.body2.copyWith(
+              color: valueColor ?? AppColors.darkTextPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
