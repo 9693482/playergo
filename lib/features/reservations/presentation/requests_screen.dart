@@ -6,6 +6,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../data/reservation_service.dart';
+import '../../checkin/presentation/qr_display_screen.dart';
 
 class RequestsScreen extends ConsumerStatefulWidget {
   const RequestsScreen({super.key});
@@ -60,6 +61,22 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
         ),
       );
     }
+  }
+
+  void _showQR(Reservation reservation) {
+    final player = ref.read(currentPlayerProvider).valueOrNull;
+    if (player == null) return;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QRDisplayScreen(
+          reservationId: reservation.id,
+          playerId: player.id,
+          teamId: reservation.teamId,
+        ),
+      ),
+    );
   }
 
   @override
@@ -126,6 +143,10 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
                           (r) => _ReservationCard(
                             reservation: r,
                             isPending: false,
+                            onShowQR: (r.status == ReservationStatus.accepted ||
+                                    r.status == ReservationStatus.confirmed)
+                                ? () => _showQR(r)
+                                : null,
                           ),
                         ),
                       ],
@@ -141,12 +162,14 @@ class _ReservationCard extends StatelessWidget {
   final bool isPending;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
+  final VoidCallback? onShowQR;
 
   const _ReservationCard({
     required this.reservation,
     required this.isPending,
     this.onAccept,
     this.onReject,
+    this.onShowQR,
   });
 
   Color _getStatusColor() {
@@ -263,6 +286,21 @@ class _ReservationCard extends StatelessWidget {
                     ),
                   ),
                 ],
+              ),
+            ],
+            if (reservation.status == ReservationStatus.accepted ||
+                reservation.status == ReservationStatus.confirmed) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: onShowQR,
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text('Mostrar QR de Check-in'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1B5E20),
+                  ),
+                ),
               ),
             ],
           ],
