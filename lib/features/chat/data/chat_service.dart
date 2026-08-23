@@ -81,31 +81,43 @@ class ChatService {
   String get _currentUserId => _client.auth.currentUser!.id;
 
   Future<List<Chat>> getChats() async {
-    final profileId = _currentUserId;
+    final userId = _currentUserId;
 
-    final data = await _client
-        .from('chats')
-        .select('''
-          *,
-          player:players!chats_player_id_fkey(
-            id,
-            profile:profiles(full_name)
-          ),
-          team:teams!chats_team_id_fkey(
-            id,
-            profile:profiles(full_name)
-          )
-        ''')
-        .or('player_id.eq.${await _getPlayerId(profileId)},team_id.eq.${await _getTeamId(profileId)}')
-        .order('last_message_at', ascending: false);
+    final playerResult = await _client
+        .from('players')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+    final teamResult = await _client
+        .from('teams')
+        .select('id')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+    final playerId = playerResult?['id'] as String?;
+    final teamId = teamResult?['id'] as String?;
+
+    if (playerId == null && teamId == null) return [];
+
+    var query = _client.from('chats').select();
+
+    if (playerId != null && teamId != null) {
+      query = query.or('player_id.eq.$playerId,team_id.eq.$teamId');
+    } else if (playerId != null) {
+      query = query.eq('player_id', playerId);
+    } else {
+      query = query.eq('team_id', teamId!);
+    }
+
+    final data = await query.order('last_message_at', ascending: false);
 
     return (data as List).map((chat) {
-      final playerProfile = chat['player']?['profile'] as Map<String, dynamic>?;
-      final teamProfile = chat['team']?['profile'] as Map<String, dynamic>?;
+      final pid = chat['player_id'] as String;
+      final tid = chat['team_id'] as String;
       return Chat(
         id: chat['id'] as String,
-        playerId: chat['player_id'] as String,
-        teamId: chat['team_id'] as String,
+        playerId: pid,
+        teamId: tid,
         lastMessage: chat['last_message'] as String?,
         lastMessageAt: chat['last_message_at'] != null
             ? DateTime.parse(chat['last_message_at'] as String)
@@ -113,26 +125,24 @@ class ChatService {
         unreadCountPlayer: chat['unread_count_player'] as int? ?? 0,
         unreadCountTeam: chat['unread_count_team'] as int? ?? 0,
         createdAt: DateTime.parse(chat['created_at'] as String),
-        playerName: playerProfile?['full_name'] as String?,
-        teamName: teamProfile?['full_name'] as String?,
       );
     }).toList();
   }
 
-  Future<String?> _getPlayerId(String profileId) async {
+  Future<String?> _getPlayerId(String userId) async {
     final data = await _client
         .from('players')
         .select('id')
-        .eq('profile_id', profileId)
+        .eq('user_id', userId)
         .maybeSingle();
     return data?['id'] as String?;
   }
 
-  Future<String?> _getTeamId(String profileId) async {
+  Future<String?> _getTeamId(String userId) async {
     final data = await _client
         .from('teams')
         .select('id')
-        .eq('profile_id', profileId)
+        .eq('user_id', userId)
         .maybeSingle();
     return data?['id'] as String?;
   }
@@ -172,9 +182,9 @@ class ChatService {
   }
 
   Future<void> sendMessage(String chatId, String content) async {
-    final profileId = _currentUserId;
-    final playerId = await _getPlayerId(profileId);
-    final teamId = await _getTeamId(profileId);
+    final userId = _currentUserId;
+    final playerId = await _getPlayerId(userId);
+    final teamId = await _getTeamId(userId);
 
     final senderRole = playerId != null ? 'player' : 'team';
     final senderId = playerId ?? teamId;
@@ -188,8 +198,8 @@ class ChatService {
   }
 
   Future<void> markAsRead(String chatId) async {
-    final profileId = _currentUserId;
-    final playerId = await _getPlayerId(profileId);
+    final userId = _currentUserId;
+    final playerId = await _getPlayerId(userId);
 
     if (playerId != null) {
       await _client
@@ -211,10 +221,34 @@ class ChatService {
   }
 
   Future<String> _getSenderId() async {
-    final profileId = _currentUserId;
-    final playerId = await _getPlayerId(profileId);
+    final userId = _currentUserId;
+    final playerId = await _getPlayerId(userId);
     if (playerId != null) return playerId;
-    return (await _getTeamId(profileId))!;
+    return (await _getTeamId(userId))!;
+  }
+
+  Future<String?> getPlayerName(String playerId) async {
+    final data = await _client
+        .from('players')
+        .select('user_id')
+        .eq('id', playerId)
+        .maybeSingle();
+    if (data == null) return null;
+    final profile = await _client
+        .from('profiles')
+        .select('full_name')
+        .eq('id', data['user_id'])
+        .maybeSingle();
+    return profile?['full_name'] as String?;
+  }
+
+  Future<String?> getTeamName(String teamId) async {
+    final data = await _client
+        .from('teams')
+        .select('team_name')
+        .eq('id', teamId)
+        .maybeSingle();
+    return data?['team_name'] as String?;
   }
 
   Stream<List<Message>> watchMessages(String chatId) {

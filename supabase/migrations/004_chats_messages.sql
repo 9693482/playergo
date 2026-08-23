@@ -42,7 +42,7 @@ CREATE POLICY "players_view_own_chats"
     ON public.chats FOR SELECT
     USING (
         player_id IN (
-            SELECT id FROM public.players WHERE profile_id = auth.uid()
+            SELECT id FROM public.players WHERE user_id = auth.uid()
         )
     );
 
@@ -50,17 +50,17 @@ CREATE POLICY "teams_view_own_chats"
     ON public.chats FOR SELECT
     USING (
         team_id IN (
-            SELECT id FROM public.teams WHERE profile_id = auth.uid()
+            SELECT id FROM public.teams WHERE user_id = auth.uid()
         )
     );
 
--- RLS: crear chat (solo equipos pueden iniciar)
-CREATE POLICY "teams_create_chat"
+-- RLS: crear chat (ambos pueden iniciar)
+CREATE POLICY "users_create_chat"
     ON public.chats FOR INSERT
     WITH CHECK (
-        team_id IN (
-            SELECT id FROM public.teams WHERE profile_id = auth.uid()
-        )
+        player_id IN (SELECT id FROM public.players WHERE user_id = auth.uid())
+        OR
+        team_id IN (SELECT id FROM public.teams WHERE user_id = auth.uid())
     );
 
 -- RLS: mensajes - ver si eres parte del chat
@@ -69,8 +69,8 @@ CREATE POLICY "users_view_chat_messages"
     USING (
         chat_id IN (
             SELECT id FROM public.chats
-            WHERE player_id IN (SELECT id FROM public.players WHERE profile_id = auth.uid())
-               OR team_id IN (SELECT id FROM public.teams WHERE profile_id = auth.uid())
+            WHERE player_id IN (SELECT id FROM public.players WHERE user_id = auth.uid())
+               OR team_id IN (SELECT id FROM public.teams WHERE user_id = auth.uid())
         )
     );
 
@@ -80,8 +80,8 @@ CREATE POLICY "users_send_messages"
     WITH CHECK (
         chat_id IN (
             SELECT id FROM public.chats
-            WHERE player_id IN (SELECT id FROM public.players WHERE profile_id = auth.uid())
-               OR team_id IN (SELECT id FROM public.teams WHERE profile_id = auth.uid())
+            WHERE player_id IN (SELECT id FROM public.players WHERE user_id = auth.uid())
+               OR team_id IN (SELECT id FROM public.teams WHERE user_id = auth.uid())
         )
     );
 
@@ -91,8 +91,8 @@ CREATE POLICY "users_update_own_messages"
     USING (
         chat_id IN (
             SELECT id FROM public.chats
-            WHERE player_id IN (SELECT id FROM public.players WHERE profile_id = auth.uid())
-               OR team_id IN (SELECT id FROM public.teams WHERE profile_id = auth.uid())
+            WHERE player_id IN (SELECT id FROM public.players WHERE user_id = auth.uid())
+               OR team_id IN (SELECT id FROM public.teams WHERE user_id = auth.uid())
         )
     );
 

@@ -14,6 +14,7 @@ class ChatListScreen extends StatefulWidget {
 class _ChatListScreenState extends State<ChatListScreen> {
   final _chatService = ChatService();
   List<Chat> _chats = [];
+  final Map<String, String> _names = {};
   bool _isLoading = true;
 
   @override
@@ -24,6 +25,12 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Future<void> _loadChats() async {
     final chats = await _chatService.getChats();
+    for (final chat in chats) {
+      final playerName = await _chatService.getPlayerName(chat.playerId);
+      final teamName = await _chatService.getTeamName(chat.teamId);
+      _names[chat.playerId] = playerName ?? 'Jugador';
+      _names[chat.teamId] = teamName ?? 'Equipo';
+    }
     setState(() {
       _chats = chats;
       _isLoading = false;
@@ -31,7 +38,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   String _getOtherName(Chat chat) {
-    return chat.playerName ?? chat.teamName ?? 'Usuario';
+    return _names[chat.teamId] ?? _names[chat.playerId] ?? 'Usuario';
   }
 
   String _formatDate(DateTime? date) {
