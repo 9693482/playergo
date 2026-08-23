@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/validators/validators.dart';
 import '../../../shared/models/profile.dart';
 import '../../../shared/models/player.dart';
 import '../../../shared/models/team.dart';
@@ -16,11 +17,14 @@ class AuthService {
     required String fullName,
     required String role,
   }) async {
+    final cleanEmail = Validators.sanitize(email) ?? email;
+    final cleanName = Validators.sanitize(fullName) ?? fullName;
+
     final response = await _client.auth.signUp(
-      email: email,
+      email: cleanEmail,
       password: password,
       data: {
-        'full_name': fullName,
+        'full_name': cleanName,
         'role': role,
       },
     );
@@ -28,8 +32,8 @@ class AuthService {
     if (response.user != null) {
       await _client.from('profiles').upsert({
         'id': response.user!.id,
-        'email': email,
-        'full_name': fullName,
+        'email': cleanEmail,
+        'full_name': cleanName,
         'role': role,
       });
     }
@@ -41,8 +45,9 @@ class AuthService {
     required String email,
     required String password,
   }) async {
+    final cleanEmail = Validators.sanitize(email) ?? email;
     return await _client.auth.signInWithPassword(
-      email: email,
+      email: cleanEmail,
       password: password,
     );
   }
@@ -52,7 +57,8 @@ class AuthService {
   }
 
   Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email);
+    final cleanEmail = Validators.sanitize(email) ?? email;
+    await _client.auth.resetPasswordForEmail(cleanEmail);
   }
 
   Future<Profile?> getProfile(String userId) async {
@@ -96,6 +102,7 @@ class AuthService {
     String? bio,
     int experienceYears = 0,
   }) async {
+    final cleanBio = Validators.sanitize(bio);
     final data = await _client
         .from('players')
         .insert({
@@ -103,7 +110,7 @@ class AuthService {
           'sport_id': sportId,
           'position_id': positionId,
           'price_per_match': pricePerMatch,
-          'bio': bio,
+          'bio': cleanBio,
           'experience_years': experienceYears,
         })
         .select()
@@ -130,13 +137,17 @@ class AuthService {
     String? captainName,
     String? captainPhone,
   }) async {
+    final cleanName = Validators.sanitize(teamName) ?? teamName;
+    final cleanDesc = Validators.sanitize(description);
+    final cleanCaptain = Validators.sanitize(captainName);
+
     final data = await _client
         .from('teams')
         .insert({
           'user_id': userId,
-          'team_name': teamName,
-          'description': description,
-          'captain_name': captainName,
+          'team_name': cleanName,
+          'description': cleanDesc,
+          'captain_name': cleanCaptain,
           'captain_phone': captainPhone,
         })
         .select()

@@ -49,7 +49,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           return profile.when(
             data: (p) {
-              if (p == null) return const _LoadingScreen();
+              if (p == null) return const _ProfileMissingScreen();
 
               switch (p.role) {
                 case UserRole.player:
@@ -61,7 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               }
             },
             loading: () => const _LoadingScreen(),
-            error: (e, _) => const _LoadingScreen(),
+            error: (e, _) => const _ProfileMissingScreen(),
           );
         },
       ),
@@ -82,6 +82,34 @@ class _LoadingScreen extends StatelessWidget {
             Icon(Icons.sports_soccer, size: 80, color: Color(0xFF1B5E20)),
             SizedBox(height: 16),
             CircularProgressIndicator(color: Color(0xFF1B5E20)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileMissingScreen extends StatelessWidget {
+  const _ProfileMissingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 80, color: Colors.orange),
+            SizedBox(height: 16),
+            Text(
+              'Tu perfil no está configurado',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Cierra sesión y vuelve a registrarte.',
+              style: TextStyle(color: Colors.grey),
+            ),
           ],
         ),
       ),
