@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/config/currency.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
@@ -279,7 +280,7 @@ class _ReservationCard extends StatelessWidget {
                 Text('${reservation.startTime} - ${reservation.endTime}'),
                 const SizedBox(width: 16),
                 const Icon(Icons.attach_money, size: 16, color: Colors.grey),
-                Text('\$${reservation.totalPrice.toStringAsFixed(0)}'),
+                Text(CurrencyInfo.format(reservation.totalPrice, CurrencyInfo.fromCountryCode('CO'))),
               ],
             ),
             if (isPending) ...[

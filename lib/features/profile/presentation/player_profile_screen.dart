@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/currency.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
@@ -129,7 +130,7 @@ class PlayerProfileScreen extends ConsumerWidget {
                             _InfoRow(
                               icon: Icons.attach_money,
                               label: 'Precio/partido',
-                              value: '\$${pl.pricePerMatch.toStringAsFixed(0)}',
+                              value: CurrencyInfo.format(pl.pricePerMatch, CurrencyInfo.fromCountryCode('CO')),
                             ),
                             const Divider(),
                             _InfoRow(

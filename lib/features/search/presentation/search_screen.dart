@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/currency.dart';
 import '../data/search_service.dart';
 import '../../reservations/presentation/create_reservation_screen.dart';
 
@@ -258,7 +259,7 @@ class _PlayerCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '\$${price.toStringAsFixed(0)}',
+              CurrencyInfo.format(price, CurrencyInfo.fromCountryCode('CO')),
               style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1B5E20),

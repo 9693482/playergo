@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/config/currency.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
@@ -157,7 +158,7 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                                   Text('${r.startTime} - ${r.endTime}'),
                                   const SizedBox(width: 16),
                                   const Icon(Icons.attach_money, size: 16, color: Colors.grey),
-                                  Text('\$${r.totalPrice.toStringAsFixed(0)}'),
+                                  Text(CurrencyInfo.format(r.totalPrice, CurrencyInfo.fromCountryCode('CO'))),
                                 ],
                               ),
                               if (r.status == ReservationStatus.accepted) ...[

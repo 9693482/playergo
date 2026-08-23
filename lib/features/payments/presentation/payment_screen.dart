@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/config/currency.dart';
 import '../data/payment_service.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -87,7 +88,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '\$${_totalAmount.toStringAsFixed(0)} COP',
+                '${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))} COP',
                 style: const TextStyle(
                   fontSize: 20,
                   color: Color(0xFF1B5E20),
@@ -131,17 +132,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     const Divider(),
                     _SummaryRow(
                       label: 'Monto del jugador',
-                      value: '\$${widget.amount.toStringAsFixed(0)}',
+                      value: CurrencyInfo.format(widget.amount, CurrencyInfo.fromCountryCode('CO')),
                     ),
                     _SummaryRow(
                       label: 'Comisión plataforma (${PaymentService.platformFeePercentage.toStringAsFixed(0)}%)',
-                      value: '- \$${_platformFee.toStringAsFixed(0)}',
+                      value: '- ${CurrencyInfo.format(_platformFee, CurrencyInfo.fromCountryCode('CO'))}',
                       valueColor: Colors.red,
                     ),
                     const Divider(),
                     _SummaryRow(
                       label: 'Total a pagar',
-                      value: '\$${_totalAmount.toStringAsFixed(0)} COP',
+                      value: '${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))} COP',
                       isBold: true,
                     ),
                   ],
@@ -183,7 +184,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: _isProcessing
                     ? const CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Pagar \$${_totalAmount.toStringAsFixed(0)}',
+                        'Pagar ${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))}',
                         style: const TextStyle(fontSize: 16),
                       ),
               ),

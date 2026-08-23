@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/config/currency.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../search/data/search_service.dart';
 import '../data/reservation_service.dart';
@@ -185,7 +186,7 @@ class _CreateReservationScreenState
                       ),
                     ),
                     Text(
-                      '\$${price.toStringAsFixed(0)}',
+                      CurrencyInfo.format(price, CurrencyInfo.fromCountryCode('CO')),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -308,7 +309,7 @@ class _CreateReservationScreenState
                           ),
                         ),
                         Text(
-                          '\$${_calculateTotalPrice().toStringAsFixed(0)}',
+                          CurrencyInfo.format(_calculateTotalPrice(), CurrencyInfo.fromCountryCode('CO')),
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
