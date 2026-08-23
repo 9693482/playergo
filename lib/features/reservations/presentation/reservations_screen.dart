@@ -1,8 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
@@ -44,21 +48,21 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
   Color _getStatusColor(ReservationStatus status) {
     switch (status) {
       case ReservationStatus.pending:
-        return Colors.orange;
+        return AppColors.warning;
       case ReservationStatus.accepted:
-        return Colors.green;
+        return AppColors.primary;
       case ReservationStatus.rejected:
-        return Colors.red;
+        return AppColors.error;
       case ReservationStatus.completed:
-        return Colors.blue;
+        return AppColors.success;
       case ReservationStatus.cancelled:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
       case ReservationStatus.paid:
-        return Colors.purple;
+        return AppColors.info;
       case ReservationStatus.confirmed:
-        return Colors.teal;
+        return AppColors.primary;
       default:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -86,226 +90,336 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Mis Reservas'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Mis Reservas',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _reservations.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.calendar_month, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No tienes reservas aún',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildEmptyState()
               : RefreshIndicator(
                   onRefresh: _loadReservations,
+                  color: AppColors.primary,
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: _reservations.length,
                     itemBuilder: (context, index) {
                       final r = _reservations[index];
-                      final statusColor = _getStatusColor(r.status);
-                      final statusText = _getStatusText(r.status);
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    DateFormat('dd/MM/yyyy').format(r.reservationDate),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statusColor.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      statusText,
-                                      style: TextStyle(
-                                        color: statusColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  const Icon(Icons.access_time, size: 16, color: Colors.grey),
-                                  const SizedBox(width: 4),
-                                  Text('${r.startTime} - ${r.endTime}'),
-                                  const SizedBox(width: 16),
-                                  const Icon(Icons.attach_money, size: 16, color: Colors.grey),
-                                  Text(CurrencyInfo.format(r.totalPrice, CurrencyInfo.fromCountryCode('CO'))),
-                                ],
-                              ),
-                              if (r.status == ReservationStatus.accepted) ...[
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => PaymentScreen(
-                                            reservationId: r.id,
-                                            amount: r.totalPrice,
-                                            playerName: 'Jugador',
-                                          ),
-                                        ),
-                                      ).then((_) => _loadReservations());
-                                    },
-                                    icon: const Icon(Icons.payment),
-                                    label: const Text('Pagar ahora'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1B5E20),
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (r.status == ReservationStatus.paid ||
-                                  r.status == ReservationStatus.confirmed) ...[
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () async {
-                                      final team = ref.read(currentTeamProvider).valueOrNull;
-                                      if (team == null) return;
-                                      final chatService = ChatService();
-                                      final chat = await chatService.getOrCreateChat(
-                                        r.playerId,
-                                        team.id,
-                                        reservationId: r.id,
-                                      );
-                                      final playerName = await chatService.getPlayerName(r.playerId);
-                                      if (!mounted) return;
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => ChatScreen(
-                                            chatId: chat.id,
-                                            otherName: playerName ?? 'Jugador',
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.chat),
-                                    label: const Text('Chat con el jugador'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF1B5E20),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (r.status == ReservationStatus.confirmed ||
-                                  r.status == ReservationStatus.paid) ...[
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton.icon(
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (context) => AlertDialog(
-                                          title: const Text('Completar reserva'),
-                                          content: const Text(
-                                            '¿Confirmas que la reserva se ha completado?',
-                                          ),
-                                          actions: [
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, false),
-                                              child: const Text('Cancelar'),
-                                            ),
-                                            TextButton(
-                                              onPressed: () => Navigator.pop(context, true),
-                                              child: const Text('Completar'),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                      if (confirm == true) {
-                                        await _reservationService.completeReservation(r.id);
-                                        await _loadReservations();
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Reserva completada'),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        }
-                                      }
-                                    },
-                                    icon: const Icon(Icons.check_circle),
-                                    label: const Text('Completar reserva'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.teal,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              if (r.status == ReservationStatus.completed) ...[
-                                const SizedBox(height: 12),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton.icon(
-                                    onPressed: () {
-                                      final team = ref.read(currentTeamProvider).valueOrNull;
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => RateScreen(
-                                            reservationId: r.id,
-                                            raterId: team?.userId ?? '',
-                                            ratedId: r.playerId,
-                                            ratedName: 'Jugador',
-                                          ),
-                                        ),
-                                      ).then((_) => _loadReservations());
-                                    },
-                                    icon: const Icon(Icons.star_outline),
-                                    label: const Text('Calificar jugador'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF1B5E20),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ],
-                          ),
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                        child: _ReservationCard(
+                          reservation: r,
+                          statusColor: _getStatusColor(r.status),
+                          statusText: _getStatusText(r.status),
+                          onRefresh: _loadReservations,
+                          ref: ref,
                         ),
                       );
                     },
                   ),
                 ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(AppSpacing.xxl),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        decoration: BoxDecoration(
+          color: AppColors.darkSurface,
+          borderRadius: AppRadius.medium,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.calendar_month,
+              size: 56,
+              color: AppColors.darkTextSecondary,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'No tienes reservas aun',
+              style: AppTypography.body1.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReservationCard extends StatelessWidget {
+  final Reservation reservation;
+  final Color statusColor;
+  final String statusText;
+  final VoidCallback onRefresh;
+  final WidgetRef ref;
+
+  const _ReservationCard({
+    required this.reservation,
+    required this.statusColor,
+    required this.statusText,
+    required this.onRefresh,
+    required this.ref,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: AppRadius.medium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                DateFormat('dd/MM/yyyy').format(reservation.reservationDate),
+                style: AppTypography.subtitle1.copyWith(
+                  color: AppColors.darkTextPrimary,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withAlpha(30),
+                  borderRadius: AppRadius.full,
+                ),
+                child: Text(
+                  statusText,
+                  style: AppTypography.caption.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              const Icon(Icons.access_time, size: 16, color: AppColors.darkTextSecondary),
+              const SizedBox(width: AppSpacing.xs),
+              Text(
+                '${reservation.startTime} - ${reservation.endTime}',
+                style: AppTypography.body2.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              const Icon(Icons.attach_money, size: 16, color: AppColors.darkTextSecondary),
+              Text(
+                CurrencyInfo.format(
+                  reservation.totalPrice,
+                  CurrencyInfo.fromCountryCode('CO'),
+                ),
+                style: AppTypography.body2.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          if (reservation.status == ReservationStatus.accepted) ...[
+            const SizedBox(height: AppSpacing.lg),
+            _ActionButton(
+              label: 'Pagar ahora',
+              icon: Icons.payment,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => PaymentScreen(
+                      reservationId: reservation.id,
+                      amount: reservation.totalPrice,
+                      playerName: 'Jugador',
+                    ),
+                  ),
+                ).then((_) => onRefresh());
+              },
+            ),
+          ],
+          if (reservation.status == ReservationStatus.paid ||
+              reservation.status == ReservationStatus.confirmed) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _ActionButton(
+              label: 'Chat con el jugador',
+              icon: Icons.chat,
+              backgroundColor: AppColors.darkSurfaceVariant,
+              foregroundColor: AppColors.darkTextPrimary,
+              onTap: () async {
+                final team = ref.read(currentTeamProvider).valueOrNull;
+                if (team == null) return;
+                final chatService = ChatService();
+                final chat = await chatService.getOrCreateChat(
+                  reservation.playerId,
+                  team.id,
+                  reservationId: reservation.id,
+                );
+                final playerName = await chatService.getPlayerName(reservation.playerId);
+                if (!context.mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChatScreen(
+                      chatId: chat.id,
+                      otherName: playerName ?? 'Jugador',
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+          if (reservation.status == ReservationStatus.confirmed ||
+              reservation.status == ReservationStatus.paid) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _ActionButton(
+              label: 'Completar reserva',
+              icon: Icons.check_circle,
+              backgroundColor: AppColors.success,
+              foregroundColor: AppColors.textOnPrimary,
+              onTap: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    backgroundColor: AppColors.darkSurface,
+                    title: Text(
+                      'Completar reserva',
+                      style: AppTypography.subtitle1.copyWith(
+                        color: AppColors.darkTextPrimary,
+                      ),
+                    ),
+                    content: Text(
+                      'Confirmas que la reserva se ha completado?',
+                      style: AppTypography.body2.copyWith(
+                        color: AppColors.darkTextSecondary,
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text(
+                          'Cancelar',
+                          style: AppTypography.body2.copyWith(
+                            color: AppColors.darkTextSecondary,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text(
+                          'Completar',
+                          style: AppTypography.body2.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  await ReservationService().completeReservation(reservation.id);
+                  onRefresh();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Reserva completada'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+          ],
+          if (reservation.status == ReservationStatus.completed) ...[
+            const SizedBox(height: AppSpacing.sm),
+            _ActionButton(
+              label: 'Calificar jugador',
+              icon: Icons.star_outline,
+              backgroundColor: AppColors.darkSurfaceVariant,
+              foregroundColor: AppColors.darkTextPrimary,
+              onTap: () {
+                final team = ref.read(currentTeamProvider).valueOrNull;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => RateScreen(
+                      reservationId: reservation.id,
+                      raterId: team?.userId ?? '',
+                      ratedId: reservation.playerId,
+                      ratedName: 'Jugador',
+                    ),
+                  ),
+                ).then((_) => onRefresh());
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color backgroundColor;
+  final Color foregroundColor;
+  final VoidCallback onTap;
+
+  const _ActionButton({
+    required this.label,
+    required this.icon,
+    required this.backgroundColor,
+    required this.foregroundColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 44,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label, style: AppTypography.button.copyWith(fontSize: 14)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: foregroundColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: AppRadius.small,
+          ),
+          elevation: 0,
+        ),
+      ),
     );
   }
 }
