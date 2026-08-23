@@ -5,9 +5,13 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../../features/home/presentation/player_home_screen.dart';
+import '../../features/home/presentation/team_home_screen.dart';
+import '../../shared/models/enums/enums.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final profile = ref.watch(currentProfileProvider);
 
   return GoRouter(
     initialLocation: '/login',
@@ -41,67 +45,42 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) {
+          return profile.when(
+            data: (p) {
+              if (p == null) return const _LoadingScreen();
+
+              switch (p.role) {
+                case UserRole.player:
+                  return const PlayerHomeScreen();
+                case UserRole.team:
+                  return const TeamHomeScreen();
+                case UserRole.admin:
+                  return const PlayerHomeScreen();
+              }
+            },
+            loading: () => const _LoadingScreen(),
+            error: (e, _) => const _LoadingScreen(),
+          );
+        },
       ),
     ],
   );
 });
 
-class HomeScreen extends ConsumerWidget {
-  const HomeScreen({super.key});
+class _LoadingScreen extends StatelessWidget {
+  const _LoadingScreen();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider);
-    final profile = ref.watch(currentProfileProvider);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('PlayerGo'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await ref.read(authServiceProvider).signOut();
-              if (context.mounted) {
-                context.go('/login');
-              }
-            },
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) {
+    return const Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.sports_soccer,
-              size: 80,
-              color: Color(0xFF1B5E20),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Bienvenido a PlayerGo',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              user?.email ?? '',
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            profile.when(
-              data: (p) => Text(
-                p?.fullName ?? 'Sin nombre',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[500],
-                ),
-              ),
-              loading: () => const CircularProgressIndicator(),
-              error: (e, _) => Text('Error: $e'),
-            ),
+            Icon(Icons.sports_soccer, size: 80, color: Color(0xFF1B5E20)),
+            SizedBox(height: 16),
+            CircularProgressIndicator(color: Color(0xFF1B5E20)),
           ],
         ),
       ),
