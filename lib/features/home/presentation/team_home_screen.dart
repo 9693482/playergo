@@ -6,6 +6,7 @@ import '../../auth/providers/auth_provider.dart';
 import '../../profile/presentation/team_profile_screen.dart';
 import '../../search/presentation/search_screen.dart';
 import '../../chat/presentation/chat_list_screen.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class TeamHomeScreen extends ConsumerStatefulWidget {
   const TeamHomeScreen({super.key});
@@ -74,6 +75,17 @@ class _TeamDashboard extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('PlayerGo'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {

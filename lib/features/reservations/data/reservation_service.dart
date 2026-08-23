@@ -1,9 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shared/models/reservation.dart';
+import '../../notifications/data/notification_service.dart';
 
 class ReservationService {
   final SupabaseClient _client = Supabase.instance.client;
+  final NotificationService _notificationService = NotificationService();
 
   Future<List<Reservation>> getTeamReservations(String teamId) async {
     final data = await _client
@@ -62,6 +64,14 @@ class ReservationService {
       'new_status': 'PENDING',
     });
 
+    await _notificationService.sendPushToUser(
+      userId: await _getPlayerUserId(playerId),
+      title: 'Nueva solicitud de reserva',
+      body: 'Un equipo quiere reservarte para el $date',
+      type: 'reservation_request',
+      data: {'reservation_id': data['id']},
+    );
+
     return Reservation.fromJson(data);
   }
 
@@ -72,7 +82,7 @@ class ReservationService {
   }) async {
     final current = await _client
         .from('reservations')
-        .select('status')
+        .select('status, player_id, team_id')
         .eq('id', reservationId)
         .single();
 
@@ -87,6 +97,48 @@ class ReservationService {
       'new_status': newStatus,
       'reason': reason,
     });
+
+    String? notifUserId;
+    String title = '';
+    String body = '';
+
+    switch (newStatus) {
+      case 'ACCEPTED':
+        notifUserId = await _getTeamUserId(current['team_id']);
+        title = 'Reserva aceptada';
+        body = 'Tu solicitud de reserva ha sido aceptada';
+        break;
+      case 'REJECTED':
+        notifUserId = await _getTeamUserId(current['team_id']);
+        title = 'Reserva rechazada';
+        body = 'Tu solicitud de reserva ha sido rechazada${reason != null ? ': $reason' : ''}';
+        break;
+      case 'CANCELLED':
+        final isTeamCancel = current['status'] == 'ACCEPTED' || current['status'] == 'PENDING';
+        if (isTeamCancel) {
+          notifUserId = await _getPlayerUserId(current['player_id']);
+        } else {
+          notifUserId = await _getTeamUserId(current['team_id']);
+        }
+        title = 'Reserva cancelada';
+        body = 'Una reserva ha sido cancelada';
+        break;
+      case 'COMPLETED':
+        notifUserId = await _getTeamUserId(current['team_id']);
+        title = 'Reserva completada';
+        body = 'El partido ha finalizado. ¡Califica tu experiencia!';
+        break;
+    }
+
+    if (notifUserId != null) {
+      await _notificationService.sendPushToUser(
+        userId: notifUserId,
+        title: title,
+        body: body,
+        type: 'reservation_${newStatus.toLowerCase()}',
+        data: {'reservation_id': reservationId},
+      );
+    }
   }
 
   Future<void> acceptReservation(String reservationId) async {
@@ -124,5 +176,23 @@ class ReservationService {
       reservationId: reservationId,
       newStatus: 'COMPLETED',
     );
+  }
+
+  Future<String> _getPlayerUserId(String playerId) async {
+    final data = await _client
+        .from('players')
+        .select('user_id')
+        .eq('id', playerId)
+        .single();
+    return data['user_id'] as String;
+  }
+
+  Future<String> _getTeamUserId(String teamId) async {
+    final data = await _client
+        .from('teams')
+        .select('user_id')
+        .eq('id', teamId)
+        .single();
+    return data['user_id'] as String;
   }
 }

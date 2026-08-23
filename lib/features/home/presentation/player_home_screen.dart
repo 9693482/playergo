@@ -8,6 +8,7 @@ import '../../search/presentation/search_screen.dart';
 import '../../availability/presentation/availability_screen.dart';
 import '../../reservations/presentation/requests_screen.dart';
 import '../../chat/presentation/chat_list_screen.dart';
+import '../../notifications/presentation/notifications_screen.dart';
 
 class PlayerHomeScreen extends ConsumerStatefulWidget {
   const PlayerHomeScreen({super.key});
@@ -76,6 +77,17 @@ class _PlayerDashboard extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('PlayerGo'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const NotificationsScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
