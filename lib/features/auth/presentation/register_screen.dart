@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/validators/validators.dart';
+import '../../../generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -47,8 +48,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cuenta creada. Revisa tu correo para confirmar.'),
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.registerSuccess),
             backgroundColor: Colors.green,
           ),
         );
@@ -58,7 +59,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(AppLocalizations.of(context)!.errorGeneric),
             backgroundColor: Colors.red,
           ),
         );
@@ -72,9 +73,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Crear Cuenta'),
+        title: Text(s.createAccount),
       ),
       body: SafeArea(
         child: Center(
@@ -86,7 +89,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    '¿Qué eres?',
+                    s.whatAreYou,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 12),
@@ -95,7 +98,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       Expanded(
                         child: _RoleCard(
                           icon: Icons.person,
-                          label: 'Jugador',
+                          label: s.player,
                           isSelected: _selectedRole == 'PLAYER',
                           onTap: () => setState(() => _selectedRole = 'PLAYER'),
                         ),
@@ -104,7 +107,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       Expanded(
                         child: _RoleCard(
                           icon: Icons.group,
-                          label: 'Equipo',
+                          label: s.team,
                           isSelected: _selectedRole == 'TEAM',
                           onTap: () => setState(() => _selectedRole = 'TEAM'),
                         ),
@@ -116,8 +119,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _fullNameController,
                     decoration: InputDecoration(
                       labelText: _selectedRole == 'PLAYER'
-                          ? 'Nombre completo'
-                          : 'Nombre del equipo',
+                          ? s.fullName
+                          : s.teamName,
                       prefixIcon: const Icon(Icons.person_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -132,7 +135,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Correo electrónico',
+                      labelText: s.email,
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -145,7 +148,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: 'Contraseña',
+                      labelText: s.password,
                       prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -170,7 +173,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     controller: _confirmPasswordController,
                     obscureText: true,
                     decoration: InputDecoration(
-                      labelText: 'Confirmar contraseña',
+                      labelText: s.confirmPassword,
                       prefixIcon: const Icon(Icons.lock_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -178,7 +181,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ),
                     validator: (v) {
                       if (v != _passwordController.text) {
-                        return 'Las contraseñas no coinciden';
+                        return s.confirmPassword;
                       }
                       return null;
                     },
@@ -204,16 +207,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Crear Cuenta',
-                              style: TextStyle(fontSize: 16),
+                          : Text(
+                              s.register,
+                              style: const TextStyle(fontSize: 16),
                             ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => context.go('/login'),
-                    child: const Text('¿Ya tienes cuenta? Inicia sesión'),
+                    child: Text(s.hasAccount),
                   ),
                 ],
               ),

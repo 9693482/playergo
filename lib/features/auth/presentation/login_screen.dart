@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/validators/validators.dart';
+import '../../../generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -45,7 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(AppLocalizations.of(context)!.errorGeneric),
             backgroundColor: Colors.red,
           ),
         );
@@ -59,6 +60,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final s = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: SafeArea(
         child: Center(
@@ -77,7 +80,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'PlayerGo',
+                    s.appTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                       fontWeight: FontWeight.bold,
@@ -86,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Inicia sesión para continuar',
+                    s.loginTitle,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.grey[600],
@@ -97,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
-                      labelText: 'Correo electrónico',
+                      labelText: s.email,
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -110,7 +113,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     controller: _passwordController,
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
-                      labelText: 'Contraseña',
+                      labelText: s.password,
                       prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -129,7 +132,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     validator: (v) {
-                      if (v == null || v.isEmpty) return 'Ingresa tu contraseña';
+                      if (v == null || v.isEmpty) return s.passwordHint;
                       return null;
                     },
                   ),
@@ -154,16 +157,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Iniciar Sesión',
-                              style: TextStyle(fontSize: 16),
+                          : Text(
+                              s.signIn,
+                              style: const TextStyle(fontSize: 16),
                             ),
                     ),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => context.go('/register'),
-                    child: const Text('¿No tienes cuenta? Regístrate'),
+                    child: Text(s.noAccount),
                   ),
                 ],
               ),
