@@ -5,6 +5,7 @@ import '../../../core/config/currency.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
+import '../../verification/presentation/verification_screen.dart';
 
 class PlayerProfileScreen extends ConsumerWidget {
   const PlayerProfileScreen({super.key});
@@ -18,6 +19,18 @@ class PlayerProfileScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Mi Perfil'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.verified_user),
+            tooltip: 'Verificar identidad',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const VerificationScreen(),
+                ),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {},
@@ -79,6 +92,35 @@ class PlayerProfileScreen extends ConsumerWidget {
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
                       ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getVerificationColor(p.verificationStatus.name).withAlpha(25),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getVerificationIcon(p.verificationStatus.name),
+                          size: 14,
+                          color: _getVerificationColor(p.verificationStatus.name),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getVerificationText(p.verificationStatus.name),
+                          style: TextStyle(
+                            color: _getVerificationColor(p.verificationStatus.name),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -170,6 +212,51 @@ class PlayerProfileScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Error: $e')),
       ),
     );
+  }
+
+  Color _getVerificationColor(String? status) {
+    switch (status) {
+      case 'VERIFIED':
+        return Colors.green;
+      case 'PENDING':
+        return Colors.orange;
+      case 'REJECTED':
+        return Colors.red;
+      case 'SUSPENDED':
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getVerificationIcon(String? status) {
+    switch (status) {
+      case 'VERIFIED':
+        return Icons.verified;
+      case 'PENDING':
+        return Icons.hourglass_top;
+      case 'REJECTED':
+        return Icons.cancel;
+      case 'SUSPENDED':
+        return Icons.block;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _getVerificationText(String? status) {
+    switch (status) {
+      case 'VERIFIED':
+        return 'Verificado';
+      case 'PENDING':
+        return 'En revisión';
+      case 'REJECTED':
+        return 'Rechazado';
+      case 'SUSPENDED':
+        return 'Suspendido';
+      default:
+        return 'Sin verificar';
+    }
   }
 }
 

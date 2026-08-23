@@ -6,6 +6,7 @@ import '../data/admin_service.dart';
 import 'admin_users_screen.dart';
 import 'admin_reservations_screen.dart';
 import 'admin_disputes_screen.dart';
+import '../../verification/presentation/admin_verification_screen.dart';
 
 class AdminDashboardScreen extends ConsumerStatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -140,6 +141,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const AdminUsersScreen()),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    _MenuCard(
+                      icon: Icons.verified_user_outlined,
+                      title: 'Verificaciones pendientes',
+                      subtitle: 'Aprobar o rechazar documentos de identidad',
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AdminVerificationScreen()),
                       ),
                     ),
                     const SizedBox(height: 8),
