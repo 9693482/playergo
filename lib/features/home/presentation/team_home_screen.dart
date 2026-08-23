@@ -7,6 +7,7 @@ import '../../profile/presentation/team_profile_screen.dart';
 import '../../search/presentation/search_screen.dart';
 import '../../chat/presentation/chat_list_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../reservations/presentation/reservations_screen.dart';
 
 class TeamHomeScreen extends ConsumerStatefulWidget {
   const TeamHomeScreen({super.key});
@@ -132,12 +133,42 @@ class _TeamDashboard extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.person_add),
-                  label: const Text('Buscar jugador ahora'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ReservationsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.calendar_month),
+                  label: const Text('Ver mis reservas'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B5E20),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SearchScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.person_add),
+                  label: const Text('Buscar jugador ahora'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1B5E20),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
