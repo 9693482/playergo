@@ -7,6 +7,7 @@ import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../data/reservation_service.dart';
 import '../../payments/presentation/payment_screen.dart';
+import '../../ratings/presentation/rate_screen.dart';
 
 class ReservationsScreen extends ConsumerStatefulWidget {
   const ReservationsScreen({super.key});
@@ -181,6 +182,33 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF1B5E20),
                                       foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                              if (r.status == ReservationStatus.completed) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton.icon(
+                                    onPressed: () {
+                                      final team = ref.read(currentTeamProvider).valueOrNull;
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => RateScreen(
+                                            reservationId: r.id,
+                                            raterId: team?.userId ?? '',
+                                            ratedId: r.playerId,
+                                            ratedName: 'Jugador',
+                                          ),
+                                        ),
+                                      ).then((_) => _loadReservations());
+                                    },
+                                    icon: const Icon(Icons.star_outline),
+                                    label: const Text('Calificar jugador'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF1B5E20),
                                     ),
                                   ),
                                 ),

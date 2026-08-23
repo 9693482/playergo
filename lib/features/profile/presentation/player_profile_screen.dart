@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
+import '../../ratings/presentation/rating_summary_widget.dart';
 
 class PlayerProfileScreen extends ConsumerWidget {
   const PlayerProfileScreen({super.key});
@@ -151,6 +152,15 @@ class PlayerProfileScreen extends ConsumerWidget {
                   loading: () => const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('Error: $e')),
                 ),
+                if (p.id.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Calificaciones',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  RatingSummaryWidget(userId: p.id),
+                ],
               ],
             ),
           );
