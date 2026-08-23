@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/utils/geo_helper.dart';
+import '../../location/data/location_service.dart';
 import '../data/search_service.dart';
 import '../../reservations/presentation/create_reservation_screen.dart';
 
@@ -14,6 +16,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchService = SearchService();
+  final _locationService = LocationService();
   List<Map<String, dynamic>> _sports = [];
   List<Map<String, dynamic>> _positions = [];
   List<Map<String, dynamic>> _results = [];
@@ -22,6 +25,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   String? _selectedSportId;
   String? _selectedPositionId;
+  double? _maxDistanceKm;
+  UserLocation? _userLocation;
 
   @override
   void initState() {
@@ -42,10 +47,25 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   Future<void> _search() async {
     setState(() => _isLoading = true);
 
-    final results = await _searchService.searchPlayers(
+    var results = await _searchService.searchPlayers(
       sportId: _selectedSportId,
       positionId: _selectedPositionId,
     );
+
+    if (_maxDistanceKm != null && _userLocation != null) {
+      results = results.where((player) {
+        final lat = (player['latitude'] as num?)?.toDouble();
+        final lon = (player['longitude'] as num?)?.toDouble();
+        if (lat == null || lon == null) return false;
+        return GeoHelper.isWithinRadius(
+          centerLat: _userLocation!.latitude,
+          centerLon: _userLocation!.longitude,
+          pointLat: lat,
+          pointLon: lon,
+          radiusKm: _maxDistanceKm!,
+        );
+      }).toList();
+    }
 
     setState(() {
       _results = results;
@@ -121,6 +141,51 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         setState(() => _selectedPositionId = value);
                       },
                     ),
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Usar mi ubicación'),
+                      subtitle: _userLocation != null
+                          ? Text('Ubicación activa (${_maxDistanceKm?.round() ?? 0} km)')
+                          : const Text('Activar para buscar cerca'),
+                      value: _userLocation != null,
+                      onChanged: (value) async {
+                        if (value) {
+                          final loc = await _locationService.getCurrentLocation();
+                          if (loc != null) {
+                            setState(() {
+                              _userLocation = loc;
+                              _maxDistanceKm = 10;
+                            });
+                          }
+                        } else {
+                          setState(() {
+                            _userLocation = null;
+                            _maxDistanceKm = null;
+                          });
+                        }
+                      },
+                    ),
+                    if (_userLocation != null) ...[
+                      Row(
+                        children: [
+                          const Text('Radio: '),
+                          Expanded(
+                            child: Slider(
+                              value: _maxDistanceKm ?? 10,
+                              min: 1,
+                              max: 50,
+                              divisions: 49,
+                              label: '${_maxDistanceKm?.round() ?? 10} km',
+                              onChanged: (value) {
+                                setState(() => _maxDistanceKm = value);
+                              },
+                            ),
+                          ),
+                          Text('${_maxDistanceKm?.round() ?? 10} km'),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
