@@ -2,10 +2,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../shared/models/reservation.dart';
 import '../../notifications/data/notification_service.dart';
+import '../../../core/services/audit_service.dart';
 
 class ReservationService {
   final SupabaseClient _client = Supabase.instance.client;
   final NotificationService _notificationService = NotificationService();
+  final AuditService _auditService = AuditService();
 
   Future<List<Reservation>> getTeamReservations(String teamId) async {
     final data = await _client
@@ -40,6 +42,12 @@ class ReservationService {
     required double totalPrice,
     String? notes,
   }) async {
+    await _auditService.log(
+      action: 'create_reservation',
+      entity: 'reservation',
+      details: {'team_id': teamId, 'player_id': playerId, 'date': date},
+    );
+
     final data = await _client
         .from('reservations')
         .insert({
@@ -85,6 +93,13 @@ class ReservationService {
         .select('status, player_id, team_id')
         .eq('id', reservationId)
         .single();
+
+    await _auditService.log(
+      action: 'status_change:$newStatus',
+      entity: 'reservation',
+      entityId: reservationId,
+      details: {'old_status': current['status'], 'new_status': newStatus},
+    );
 
     await _client.from('reservations').update({
       'status': newStatus,

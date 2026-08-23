@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/services/audit_service.dart';
+
 class Chat {
   final String id;
   final String playerId;
@@ -80,6 +82,7 @@ class Message {
 
 class ChatService {
   final SupabaseClient _client = Supabase.instance.client;
+  final AuditService _auditService = AuditService();
 
   String get _currentUserId => _client.auth.currentUser!.id;
 
@@ -199,6 +202,13 @@ class ChatService {
 
     final senderRole = playerId != null ? 'player' : 'team';
     final senderId = playerId ?? teamId;
+
+    await _auditService.log(
+      action: 'send_message',
+      entity: 'chat',
+      entityId: chatId,
+      details: {'sender_role': senderRole},
+    );
 
     await _client.from('messages').insert({
       'chat_id': chatId,
