@@ -224,6 +224,54 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
                                   ),
                                 ),
                               ],
+                              if (r.status == ReservationStatus.confirmed ||
+                                  r.status == ReservationStatus.paid) ...[
+                                const SizedBox(height: 12),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    onPressed: () async {
+                                      final confirm = await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text('Completar reserva'),
+                                          content: const Text(
+                                            '¿Confirmas que la reserva se ha completado?',
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, false),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(context, true),
+                                              child: const Text('Completar'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (confirm == true) {
+                                        await _reservationService.completeReservation(r.id);
+                                        await _loadReservations();
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Reserva completada'),
+                                              backgroundColor: Colors.green,
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.check_circle),
+                                    label: const Text('Completar reserva'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.teal,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
                               if (r.status == ReservationStatus.completed) ...[
                                 const SizedBox(height: 12),
                                 SizedBox(
