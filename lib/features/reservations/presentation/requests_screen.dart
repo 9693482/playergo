@@ -1,0 +1,273 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../auth/providers/auth_provider.dart';
+import '../../../shared/models/reservation.dart';
+import '../../../shared/models/enums/enums.dart';
+import '../data/reservation_service.dart';
+
+class RequestsScreen extends ConsumerStatefulWidget {
+  const RequestsScreen({super.key});
+
+  @override
+  ConsumerState<RequestsScreen> createState() => _RequestsScreenState();
+}
+
+class _RequestsScreenState extends ConsumerState<RequestsScreen> {
+  final _reservationService = ReservationService();
+  List<Reservation> _reservations = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReservations();
+  }
+
+  Future<void> _loadReservations() async {
+    final player = ref.read(currentPlayerProvider).valueOrNull;
+    if (player == null) return;
+
+    final data = await _reservationService.getPlayerReservations(player.id);
+    setState(() {
+      _reservations = data;
+      _isLoading = false;
+    });
+  }
+
+  Future<void> _acceptReservation(Reservation reservation) async {
+    await _reservationService.acceptReservation(reservation.id);
+    await _loadReservations();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reserva aceptada'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  Future<void> _rejectReservation(Reservation reservation) async {
+    await _reservationService.rejectReservation(reservation.id);
+    await _loadReservations();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Reserva rechazada'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pendingReservations =
+        _reservations.where((r) => r.status == ReservationStatus.pending).toList();
+    final otherReservations =
+        _reservations.where((r) => r.status != ReservationStatus.pending).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Mis Solicitudes'),
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _reservations.isEmpty
+              ? const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.inbox, size: 64, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'No tienes solicitudes aún',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadReservations,
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      if (pendingReservations.isNotEmpty) ...[
+                        const Text(
+                          'Pendientes',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...pendingReservations.map(
+                          (r) => _ReservationCard(
+                            reservation: r,
+                            isPending: true,
+                            onAccept: () => _acceptReservation(r),
+                            onReject: () => _rejectReservation(r),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (otherReservations.isNotEmpty) ...[
+                        const Text(
+                          'Historial',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        ...otherReservations.map(
+                          (r) => _ReservationCard(
+                            reservation: r,
+                            isPending: false,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+    );
+  }
+}
+
+class _ReservationCard extends StatelessWidget {
+  final Reservation reservation;
+  final bool isPending;
+  final VoidCallback? onAccept;
+  final VoidCallback? onReject;
+
+  const _ReservationCard({
+    required this.reservation,
+    required this.isPending,
+    this.onAccept,
+    this.onReject,
+  });
+
+  Color _getStatusColor() {
+    switch (reservation.status) {
+      case ReservationStatus.pending:
+        return Colors.orange;
+      case ReservationStatus.accepted:
+        return Colors.green;
+      case ReservationStatus.rejected:
+        return Colors.red;
+      case ReservationStatus.completed:
+        return Colors.blue;
+      case ReservationStatus.cancelled:
+        return Colors.grey;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusText() {
+    switch (reservation.status) {
+      case ReservationStatus.pending:
+        return 'Pendiente';
+      case ReservationStatus.accepted:
+        return 'Aceptada';
+      case ReservationStatus.rejected:
+        return 'Rechazada';
+      case ReservationStatus.completed:
+        return 'Completada';
+      case ReservationStatus.cancelled:
+        return 'Cancelada';
+      case ReservationStatus.paid:
+        return 'Pagada';
+      case ReservationStatus.confirmed:
+        return 'Confirmada';
+      default:
+        return reservation.status.name;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  DateFormat('dd/MM/yyyy').format(reservation.reservationDate),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor().withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _getStatusText(),
+                    style: TextStyle(
+                      color: _getStatusColor(),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text('${reservation.startTime} - ${reservation.endTime}'),
+                const SizedBox(width: 16),
+                const Icon(Icons.attach_money, size: 16, color: Colors.grey),
+                Text('\$${reservation.totalPrice.toStringAsFixed(0)}'),
+              ],
+            ),
+            if (isPending) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onReject,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                      ),
+                      child: const Text('Rechazar'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: onAccept,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1B5E20),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Aceptar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
