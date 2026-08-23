@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/presentation/player_profile_screen.dart';
 import '../../search/presentation/search_screen.dart';
+import '../../availability/presentation/availability_screen.dart';
+import '../../reservations/presentation/requests_screen.dart';
 
 class PlayerHomeScreen extends ConsumerStatefulWidget {
   const PlayerHomeScreen({super.key});
@@ -113,12 +115,42 @@ class _PlayerDashboard extends ConsumerWidget {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () {},
-                  icon: const Icon(Icons.calendar_today),
-                  label: const Text('Ver mis reservas'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const RequestsScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.mail_outline),
+                  label: const Text('Ver solicitudes'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B5E20),
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AvailabilityScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.calendar_month),
+                  label: const Text('Gestionar disponibilidad'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF1B5E20),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
