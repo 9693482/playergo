@@ -7,6 +7,7 @@ import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import '../../features/home/presentation/player_home_screen.dart';
 import '../../features/home/presentation/team_home_screen.dart';
+import '../../features/admin/presentation/admin_dashboard_screen.dart';
 import '../../shared/models/enums/enums.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -56,7 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 case UserRole.team:
                   return const TeamHomeScreen();
                 case UserRole.admin:
-                  return const PlayerHomeScreen();
+                  return const AdminDashboardScreen();
               }
             },
             loading: () => const _LoadingScreen(),
