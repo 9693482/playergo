@@ -1,11 +1,15 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/geo_helper.dart';
 import '../../location/data/location_service.dart';
-import '../data/search_service.dart';
 import '../../reservations/presentation/create_reservation_screen.dart';
+import '../data/search_service.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -77,202 +81,322 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Buscar Jugadores'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+            _buildHeader(),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Filtros de búsqueda',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedSportId,
-                      decoration: InputDecoration(
-                        labelText: 'Deporte',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: _sports
-                          .map((s) => DropdownMenuItem(
-                                value: s['id'] as String,
-                                child: Text(s['name'] as String),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedSportId = value;
-                          _selectedPositionId = null;
-                          _positions = [];
-                        });
-                        if (value != null) _loadPositions(value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedPositionId,
-                      decoration: InputDecoration(
-                        labelText: 'Posición',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      items: _positions
-                          .map((p) => DropdownMenuItem(
-                                value: p['id'] as String,
-                                child: Text(p['name'] as String),
-                              ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() => _selectedPositionId = value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Usar mi ubicación'),
-                      subtitle: _userLocation != null
-                          ? Text('Ubicación activa (${_maxDistanceKm?.round() ?? 0} km)')
-                          : const Text('Activar para buscar cerca'),
-                      value: _userLocation != null,
-                      onChanged: (value) async {
-                        if (value) {
-                          final loc = await _locationService.getCurrentLocation();
-                          if (loc != null) {
-                            setState(() {
-                              _userLocation = loc;
-                              _maxDistanceKm = 10;
-                            });
-                          }
-                        } else {
-                          setState(() {
-                            _userLocation = null;
-                            _maxDistanceKm = null;
-                          });
-                        }
-                      },
-                    ),
-                    if (_userLocation != null) ...[
-                      Row(
-                        children: [
-                          const Text('Radio: '),
-                          Expanded(
-                            child: Slider(
-                              value: _maxDistanceKm ?? 10,
-                              min: 1,
-                              max: 50,
-                              divisions: 49,
-                              label: '${_maxDistanceKm?.round() ?? 10} km',
-                              onChanged: (value) {
-                                setState(() => _maxDistanceKm = value);
-                              },
-                            ),
-                          ),
-                          Text('${_maxDistanceKm?.round() ?? 10} km'),
-                        ],
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _isLoading ? null : _search,
-                        icon: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : const Icon(Icons.search),
-                        label: const Text('Buscar'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1B5E20),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    _buildFiltersCard(),
+                    const SizedBox(height: AppSpacing.xxl),
+                    _buildResultsSection(),
+                    const SizedBox(height: AppSpacing.xxxl),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Resultados',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 12),
-            if (!_hasSearched)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(Icons.search, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'Selecciona filtros y presiona buscar',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else if (_results.isEmpty)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Column(
-                    children: [
-                      Icon(Icons.search_off, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No se encontraron jugadores',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            else
-              ..._results.map(
-                (player) => _PlayerCard(
-                  player: player,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CreateReservationScreen(player: player),
-                      ),
-                    );
-                  },
-                ),
-              ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: const BoxDecoration(
+        color: AppColors.darkSurface,
+        border: Border(
+          bottom: BorderSide(color: AppColors.darkSurfaceVariant, width: 0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search, color: AppColors.darkTextPrimary, size: 24),
+          const SizedBox(width: AppSpacing.md),
+          Text(
+            'Buscar Jugadores',
+            style: AppTypography.h2.copyWith(
+              color: AppColors.darkTextPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFiltersCard() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: AppRadius.medium,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Filtros de busqueda',
+            style: AppTypography.subtitle1.copyWith(
+              color: AppColors.darkTextPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Deporte',
+            style: AppTypography.body2.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.darkSurfaceVariant,
+              borderRadius: AppRadius.small,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: DropdownButton<String>(
+              value: _selectedSportId,
+              isExpanded: true,
+              dropdownColor: AppColors.darkSurfaceVariant,
+              underline: const SizedBox(),
+              hint: Text(
+                'Seleccionar deporte',
+                style: AppTypography.body1.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+              items: _sports
+                  .map((s) => DropdownMenuItem(
+                        value: s['id'] as String,
+                        child: Text(
+                          s['name'] as String,
+                          style: AppTypography.body1.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  _selectedSportId = value;
+                  _selectedPositionId = null;
+                  _positions = [];
+                });
+                if (value != null) _loadPositions(value);
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Posicion',
+            style: AppTypography.body2.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.darkSurfaceVariant,
+              borderRadius: AppRadius.small,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: DropdownButton<String>(
+              value: _selectedPositionId,
+              isExpanded: true,
+              dropdownColor: AppColors.darkSurfaceVariant,
+              underline: const SizedBox(),
+              hint: Text(
+                'Seleccionar posicion',
+                style: AppTypography.body1.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+              items: _positions
+                  .map((p) => DropdownMenuItem(
+                        value: p['id'] as String,
+                        child: Text(
+                          p['name'] as String,
+                          style: AppTypography.body1.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+                        ),
+                      ))
+                  .toList(),
+              onChanged: (value) {
+                setState(() => _selectedPositionId = value);
+              },
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              'Usar mi ubicacion',
+              style: AppTypography.body2.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
+            ),
+            subtitle: Text(
+              _userLocation != null
+                  ? 'Ubicacion activa (${_maxDistanceKm?.round() ?? 0} km)'
+                  : 'Activar para buscar cerca',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+            value: _userLocation != null,
+            onChanged: (value) async {
+              if (value) {
+                final loc = await _locationService.getCurrentLocation();
+                if (loc != null) {
+                  setState(() {
+                    _userLocation = loc;
+                    _maxDistanceKm = 10;
+                  });
+                }
+              } else {
+                setState(() {
+                  _userLocation = null;
+                  _maxDistanceKm = null;
+                });
+              }
+            },
+          ),
+          if (_userLocation != null) ...[
+            Row(
+              children: [
+                Text(
+                  'Radio: ',
+                  style: AppTypography.body2.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
+                ),
+                Expanded(
+                  child: Slider(
+                    value: _maxDistanceKm ?? 10,
+                    min: 1,
+                    max: 50,
+                    divisions: 49,
+                    activeColor: AppColors.primary,
+                    label: '${_maxDistanceKm?.round() ?? 10} km',
+                    onChanged: (value) {
+                      setState(() => _maxDistanceKm = value);
+                    },
+                  ),
+                ),
+                Text(
+                  '${_maxDistanceKm?.round() ?? 10} km',
+                  style: AppTypography.body2.copyWith(
+                    color: AppColors.darkTextPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _search,
+              icon: _isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.search),
+              label: Text(
+                'Buscar',
+                style: AppTypography.button,
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textOnPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppRadius.medium,
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Resultados',
+          style: AppTypography.subtitle1.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (!_hasSearched)
+          _buildEmptyState(
+            icon: Icons.search,
+            message: 'Selecciona filtros y presiona buscar',
+          )
+        else if (_results.isEmpty)
+          _buildEmptyState(
+            icon: Icons.search_off,
+            message: 'No se encontraron jugadores',
+          )
+        else
+          ..._results.map(
+            (player) => Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _PlayerCard(
+                player: player,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CreateReservationScreen(player: player),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState({required IconData icon, required String message}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xxxl),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: AppRadius.medium,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 48, color: AppColors.darkTextSecondary),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            message,
+            style: AppTypography.body1.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -292,52 +416,85 @@ class _PlayerCard extends StatelessWidget {
     final rating = (player['rating'] as num?)?.toDouble() ?? 0;
     final matches = player['completed_matches'] ?? 0;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(12),
-        leading: CircleAvatar(
-          radius: 30,
-          backgroundColor: const Color(0xFF1B5E20),
-          child: Text(
-            name[0].toUpperCase(),
-            style: const TextStyle(
-              fontSize: 24,
-              color: Colors.white,
-            ),
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: AppRadius.medium,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: AppRadius.medium,
+        child: InkWell(
+          borderRadius: AppRadius.medium,
+          onTap: onTap,
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: AppColors.primary,
+                child: Text(
+                  name[0].toUpperCase(),
+                  style: AppTypography.h2.copyWith(
+                    color: AppColors.textOnPrimary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: AppTypography.subtitle1.copyWith(
+                        color: AppColors.darkTextPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.star, size: 14, color: AppColors.warning),
+                        const SizedBox(width: 4),
+                        Text(
+                          rating.toStringAsFixed(1),
+                          style: AppTypography.body2.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        Text(
+                          '$matches partidos',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.darkTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    CurrencyInfo.format(price, CurrencyInfo.fromCountryCode('CO')),
+                    style: AppTypography.subtitle1.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    'por partido',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.darkTextSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        subtitle: Row(
-          children: [
-            const Icon(Icons.star, size: 14, color: Colors.amber),
-            Text(' ${rating.toStringAsFixed(1)}'),
-            const SizedBox(width: 12),
-            Text('$matches partidos'),
-          ],
-        ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              CurrencyInfo.format(price, CurrencyInfo.fromCountryCode('CO')),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1B5E20),
-                fontSize: 16,
-              ),
-            ),
-            const Text(
-              'por partido',
-              style: TextStyle(fontSize: 10),
-            ),
-          ],
-        ),
-        onTap: onTap,
       ),
     );
   }
