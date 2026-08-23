@@ -46,6 +46,51 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createAccount => 'Create Account';
 
   @override
+  String get whatDoYouWant => 'What do you want to do?';
+
+  @override
+  String get chooseOption => 'Choose the option that best represents you.';
+
+  @override
+  String get needPlayer => 'I need a player';
+
+  @override
+  String get needPlayerDesc => 'Complete your team for the next match.';
+
+  @override
+  String get wantToPlay => 'I want to play';
+
+  @override
+  String get wantToPlayDesc => 'Offer your skills and receive requests.';
+
+  @override
+  String get createYourAccount => 'Create your account';
+
+  @override
+  String get completeInfo => 'Complete the information to get started.';
+
+  @override
+  String get fullNameHint => 'Full name';
+
+  @override
+  String get teamNameHint => 'Team name';
+
+  @override
+  String get confirmPasswordHint => 'Confirm password';
+
+  @override
+  String get passwordMismatch => 'Passwords do not match';
+
+  @override
+  String get termsAccept => 'By registering you accept our';
+
+  @override
+  String get termsAndConditions => 'Terms and Conditions';
+
+  @override
+  String get privacyPolicy => 'Privacy Policy';
+
+  @override
   String get whatAreYou => 'What are you?';
 
   @override

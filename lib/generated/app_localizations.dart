@@ -170,6 +170,96 @@ abstract class AppLocalizations {
   /// **'Create Account'**
   String get createAccount;
 
+  /// No description provided for @whatDoYouWant.
+  ///
+  /// In en, this message translates to:
+  /// **'What do you want to do?'**
+  String get whatDoYouWant;
+
+  /// No description provided for @chooseOption.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the option that best represents you.'**
+  String get chooseOption;
+
+  /// No description provided for @needPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'I need a player'**
+  String get needPlayer;
+
+  /// No description provided for @needPlayerDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete your team for the next match.'**
+  String get needPlayerDesc;
+
+  /// No description provided for @wantToPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'I want to play'**
+  String get wantToPlay;
+
+  /// No description provided for @wantToPlayDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Offer your skills and receive requests.'**
+  String get wantToPlayDesc;
+
+  /// No description provided for @createYourAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create your account'**
+  String get createYourAccount;
+
+  /// No description provided for @completeInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete the information to get started.'**
+  String get completeInfo;
+
+  /// No description provided for @fullNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Full name'**
+  String get fullNameHint;
+
+  /// No description provided for @teamNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Team name'**
+  String get teamNameHint;
+
+  /// No description provided for @confirmPasswordHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get confirmPasswordHint;
+
+  /// No description provided for @passwordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get passwordMismatch;
+
+  /// No description provided for @termsAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'By registering you accept our'**
+  String get termsAccept;
+
+  /// No description provided for @termsAndConditions.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms and Conditions'**
+  String get termsAndConditions;
+
+  /// No description provided for @privacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Privacy Policy'**
+  String get privacyPolicy;
+
   /// No description provided for @whatAreYou.
   ///
   /// In en, this message translates to:
