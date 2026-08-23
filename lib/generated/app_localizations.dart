@@ -110,6 +110,12 @@ abstract class AppLocalizations {
   /// **'Sign in to continue'**
   String get loginTitle;
 
+  /// No description provided for @loginSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Find, Book, Play.'**
+  String get loginSubtitle;
+
   /// No description provided for @email.
   ///
   /// In en, this message translates to:
@@ -131,7 +137,7 @@ abstract class AppLocalizations {
   /// No description provided for @noAccount.
   ///
   /// In en, this message translates to:
-  /// **'Don\'t have an account? Sign up'**
+  /// **'Don\'t have an account?'**
   String get noAccount;
 
   /// No description provided for @emailHint.
@@ -145,6 +151,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter your password'**
   String get passwordHint;
+
+  /// No description provided for @forgotPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot your password?'**
+  String get forgotPassword;
+
+  /// No description provided for @orContinueWith.
+  ///
+  /// In en, this message translates to:
+  /// **'or continue with'**
+  String get orContinueWith;
 
   /// No description provided for @createAccount.
   ///

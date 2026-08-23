@@ -16,6 +16,9 @@ class AppLocalizationsEs extends AppLocalizations {
   String get loginTitle => 'Inicia sesión para continuar';
 
   @override
+  String get loginSubtitle => 'Encuentra, Reserva, Juega.';
+
+  @override
   String get email => 'Correo electrónico';
 
   @override
@@ -25,13 +28,19 @@ class AppLocalizationsEs extends AppLocalizations {
   String get signIn => 'Iniciar Sesión';
 
   @override
-  String get noAccount => '¿No tienes cuenta? Regístrate';
+  String get noAccount => '¿No tienes cuenta?';
 
   @override
   String get emailHint => 'Ingresa tu correo';
 
   @override
   String get passwordHint => 'Ingresa tu contraseña';
+
+  @override
+  String get forgotPassword => '¿Olvidaste tu contraseña?';
+
+  @override
+  String get orContinueWith => 'o continúa con';
 
   @override
   String get createAccount => 'Crear Cuenta';

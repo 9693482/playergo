@@ -16,6 +16,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loginTitle => 'Sign in to continue';
 
   @override
+  String get loginSubtitle => 'Find, Book, Play.';
+
+  @override
   String get email => 'Email';
 
   @override
@@ -25,13 +28,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get signIn => 'Sign In';
 
   @override
-  String get noAccount => 'Don\'t have an account? Sign up';
+  String get noAccount => 'Don\'t have an account?';
 
   @override
   String get emailHint => 'Enter your email';
 
   @override
   String get passwordHint => 'Enter your password';
+
+  @override
+  String get forgotPassword => 'Forgot your password?';
+
+  @override
+  String get orContinueWith => 'or continue with';
 
   @override
   String get createAccount => 'Create Account';
