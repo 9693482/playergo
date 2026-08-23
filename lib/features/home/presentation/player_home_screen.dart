@@ -7,6 +7,7 @@ import '../../profile/presentation/player_profile_screen.dart';
 import '../../search/presentation/search_screen.dart';
 import '../../availability/presentation/availability_screen.dart';
 import '../../reservations/presentation/requests_screen.dart';
+import '../../chat/presentation/chat_list_screen.dart';
 
 class PlayerHomeScreen extends ConsumerStatefulWidget {
   const PlayerHomeScreen({super.key});
@@ -26,6 +27,7 @@ class _PlayerHomeScreenState extends ConsumerState<PlayerHomeScreen> {
         children: [
           _PlayerDashboard(ref: ref),
           const SearchScreen(),
+          const ChatListScreen(),
           const PlayerProfileScreen(),
         ],
       ),
@@ -44,6 +46,11 @@ class _PlayerHomeScreenState extends ConsumerState<PlayerHomeScreen> {
             icon: Icon(Icons.search),
             selectedIcon: Icon(Icons.search),
             label: 'Buscar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline),
+            selectedIcon: Icon(Icons.chat_bubble),
+            label: 'Chats',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outlined),

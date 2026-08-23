@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/presentation/team_profile_screen.dart';
 import '../../search/presentation/search_screen.dart';
+import '../../chat/presentation/chat_list_screen.dart';
 
 class TeamHomeScreen extends ConsumerStatefulWidget {
   const TeamHomeScreen({super.key});
@@ -24,6 +25,7 @@ class _TeamHomeScreenState extends ConsumerState<TeamHomeScreen> {
         children: [
           _TeamDashboard(ref: ref),
           const SearchScreen(),
+          const ChatListScreen(),
           const TeamProfileScreen(),
         ],
       ),
@@ -42,6 +44,11 @@ class _TeamHomeScreenState extends ConsumerState<TeamHomeScreen> {
             icon: Icon(Icons.search),
             selectedIcon: Icon(Icons.search),
             label: 'Buscar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline),
+            selectedIcon: Icon(Icons.chat_bubble),
+            label: 'Chats',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outlined),
