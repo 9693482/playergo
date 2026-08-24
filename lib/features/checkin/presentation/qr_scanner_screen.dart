@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/qr_service.dart';
 import '../../notifications/data/notification_service.dart';
 
@@ -50,7 +54,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(result['error']),
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.error,
             ),
           );
           Navigator.pop(context, false);
@@ -65,32 +69,60 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
-            title: const Text('Confirmar Check-in'),
+            backgroundColor: AppColors.darkSurface,
+            title: Text(
+              'Confirmar Check-in',
+              style: AppTypography.subtitle1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Fecha: ${reservation['reservation_date']}'),
-                Text('Hora: ${reservation['start_time']} - ${reservation['end_time']}'),
-                const SizedBox(height: 16),
-                const Text(
-                  '¿Confirmar llegada del jugador?',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Text(
+                  'Fecha: ${reservation['reservation_date']}',
+                  style: AppTypography.body2.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Hora: ${reservation['start_time']} - ${reservation['end_time']}',
+                  style: AppTypography.body2.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Confirmar llegada del jugador?',
+                  style: AppTypography.body1.copyWith(
+                    color: AppColors.darkTextPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar'),
+                child: Text(
+                  'Cancelar',
+                  style: AppTypography.body2.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppRadius.small,
+                  ),
                 ),
-                child: const Text('Confirmar'),
+                child: Text('Confirmar', style: AppTypography.button),
               ),
             ],
           ),
@@ -114,9 +146,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Check-in exitoso'),
-                backgroundColor: Colors.green,
+              SnackBar(
+                content: const Text('Check-in exitoso'),
+                backgroundColor: AppColors.success,
               ),
             );
             Navigator.pop(context, true);
@@ -131,7 +163,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
         Navigator.pop(context, false);
@@ -142,8 +174,19 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Escanear QR'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Escanear QR',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Stack(
         children: [
@@ -161,20 +204,25 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             bottom: 32,
             left: 32,
             right: 32,
-            child: Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.qr_code_scanner, color: Color(0xFF1B5E20)),
-                    const SizedBox(width: 8),
-                    Text(
-                      _isProcessing ? 'Procesando...' : 'Apunta al QR del jugador',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.darkSurface.withAlpha(230),
+                borderRadius: AppRadius.medium,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.qr_code_scanner, color: AppColors.primary),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(
+                    _isProcessing ? 'Procesando...' : 'Apunta al QR del jugador',
+                    style: AppTypography.body2.copyWith(
+                      color: AppColors.darkTextPrimary,
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

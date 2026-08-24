@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/qr_service.dart';
 
 class QRDisplayScreen extends StatefulWidget {
@@ -53,144 +57,238 @@ class _QRDisplayScreenState extends State<QRDisplayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Mi QR de Check-in'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Mi QR de Check-in',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _hasError
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      const Text('Error al generar QR'),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _generateToken,
-                        child: const Text('Reintentar'),
-                      ),
-                    ],
-                  ),
-                )
+              ? _buildErrorState()
               : _token!.isUsed
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle, size: 64, color: Colors.green),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'QR ya fue escaneado',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Check-in registrado a las ${_formatTime(_token!.usedAt!)}',
-                            style: const TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        children: [
-                          const Text(
-                            'Muestra este código al equipo',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 24),
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(13),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: QrImageView(
-                              data: _token!.token,
-                              version: QrVersions.auto,
-                              size: 250,
-                              backgroundColor: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Expira en:'),
-                                      Text(
-                                        '${_token!.expiresAt.difference(DateTime.now()).inMinutes} minutos',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF1B5E20),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Text('Estado:'),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withAlpha(25),
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        child: const Text(
-                                          'Activo',
-                                          style: TextStyle(
-                                            color: Colors.green,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          const Card(
-                            color: Colors.orange,
-                            child: Padding(
-                              padding: EdgeInsets.all(12),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.warning_amber, color: Colors.white),
-                                  SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'No cierres esta pantalla. El QR expira en ${60} minutos.',
-                                      style: TextStyle(color: Colors.white, fontSize: 12),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                  ? _buildUsedState()
+                  : _buildActiveState(),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(AppSpacing.xxl),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        decoration: BoxDecoration(
+          color: AppColors.darkSurface,
+          borderRadius: AppRadius.medium,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline, size: 56, color: AppColors.error),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'Error al generar QR',
+              style: AppTypography.subtitle1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            ElevatedButton(
+              onPressed: _generateToken,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.textOnPrimary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: AppRadius.medium,
+                ),
+              ),
+              child: Text('Reintentar', style: AppTypography.button),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUsedState() {
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.all(AppSpacing.xxl),
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        decoration: BoxDecoration(
+          color: AppColors.darkSurface,
+          borderRadius: AppRadius.medium,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.check_circle, size: 56, color: AppColors.success),
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              'QR ya fue escaneado',
+              style: AppTypography.subtitle1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Check-in registrado a las ${_formatTime(_token!.usedAt!)}',
+              style: AppTypography.body2.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveState() {
+    final minutesLeft = _token!.expiresAt.difference(DateTime.now()).inMinutes;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      child: Column(
+        children: [
+          Icon(
+            Icons.qr_code_2,
+            size: 48,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            'Muestra este codigo al equipo',
+            style: AppTypography.body1.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.xl),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: AppRadius.medium,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withAlpha(40),
+                  blurRadius: 24,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: QrImageView(
+              data: _token!.token,
+              version: QrVersions.auto,
+              size: 240,
+              backgroundColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface,
+              borderRadius: AppRadius.medium,
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Expira en:',
+                      style: AppTypography.body2.copyWith(
+                        color: AppColors.darkTextSecondary,
                       ),
                     ),
+                    Text(
+                      '$minutesLeft minutos',
+                      style: AppTypography.subtitle2.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                  child: Divider(
+                    color: AppColors.darkSurfaceVariant,
+                    height: 1,
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Estado:',
+                      style: AppTypography.body2.copyWith(
+                        color: AppColors.darkTextSecondary,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withAlpha(30),
+                        borderRadius: AppRadius.full,
+                      ),
+                      child: Text(
+                        'Activo',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withAlpha(25),
+              borderRadius: AppRadius.medium,
+              border: Border.all(
+                color: AppColors.warning.withAlpha(80),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.warning_amber, color: AppColors.warning),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'No cierres esta pantalla. El QR expira en ${60} minutos.',
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
