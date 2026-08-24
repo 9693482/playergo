@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/rating_service.dart';
 
 class RateScreen extends StatefulWidget {
@@ -40,9 +44,9 @@ class _RateScreenState extends State<RateScreen> {
   Future<void> _submitRating() async {
     if (_score == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Selecciona una calificación general'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('Selecciona una calificacion general'),
+          backgroundColor: AppColors.warning,
         ),
       );
       return;
@@ -67,9 +71,9 @@ class _RateScreenState extends State<RateScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Calificación enviada'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Calificacion enviada'),
+            backgroundColor: AppColors.success,
           ),
         );
         Navigator.pop(context, true);
@@ -79,7 +83,7 @@ class _RateScreenState extends State<RateScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -91,82 +95,138 @@ class _RateScreenState extends State<RateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calificar')),
+      backgroundColor: AppColors.darkBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Calificar',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Icon(
+              Icons.star_rate_rounded,
+              size: 48,
+              color: AppColors.warning,
+            ),
+            const SizedBox(height: AppSpacing.lg),
             Text(
               'Califica a ${widget.ratedName}',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: AppTypography.h2.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
             ),
-            const SizedBox(height: 24),
-            const Text(
-              'Calificación general',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            const SizedBox(height: AppSpacing.xxl),
+            Text(
+              'Calificacion general',
+              style: AppTypography.subtitle1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             _StarRating(
               rating: _score,
               onChanged: (v) => setState(() => _score = v),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xxl),
             _CategoryRating(
               label: 'Puntualidad',
               rating: _punctuality,
               onChanged: (v) => setState(() => _punctuality = v),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             _CategoryRating(
               label: 'Comportamiento',
               rating: _behavior,
               onChanged: (v) => setState(() => _behavior = v),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             _CategoryRating(
               label: 'Nivel de juego',
               rating: _skillLevel,
               onChanged: (v) => setState(() => _skillLevel = v),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSpacing.md),
             _CategoryRating(
               label: 'Cumplimiento',
               rating: _compliance,
               onChanged: (v) => setState(() => _compliance = v),
             ),
-            const SizedBox(height: 24),
-            const Text(
+            const SizedBox(height: AppSpacing.xxl),
+            Text(
               'Comentario (opcional)',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: AppTypography.subtitle1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.md),
             TextFormField(
               controller: _commentController,
               maxLines: 3,
+              style: AppTypography.body1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
               decoration: InputDecoration(
-                hintText: 'Cuéntanos tu experiencia...',
+                hintText: 'Cuentanos tu experiencia...',
+                hintStyle: AppTypography.body2.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+                filled: true,
+                fillColor: AppColors.darkSurfaceVariant,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadius.medium,
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.medium,
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: AppRadius.medium,
+                  borderSide: const BorderSide(
+                    color: AppColors.primary,
+                    width: 2,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xxl),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 52,
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitRating,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.medium,
                   ),
+                  elevation: 0,
                 ),
                 child: _isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Enviar calificación', style: TextStyle(fontSize: 16)),
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Enviar calificacion',
+                        style: AppTypography.button,
+                      ),
               ),
             ),
           ],
@@ -190,7 +250,7 @@ class _StarRating extends StatelessWidget {
         return IconButton(
           icon: Icon(
             index <= rating ? Icons.star : Icons.star_border,
-            color: index <= rating ? Colors.amber : Colors.grey,
+            color: index <= rating ? AppColors.warning : AppColors.darkTextSecondary,
             size: 36,
           ),
           onPressed: () => onChanged(index),
@@ -216,8 +276,13 @@ class _CategoryRating extends StatelessWidget {
     return Row(
       children: [
         SizedBox(
-          width: 120,
-          child: Text(label, style: TextStyle(color: Colors.grey[600])),
+          width: 130,
+          child: Text(
+            label,
+            style: AppTypography.body2.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
         ),
         Expanded(
           child: Row(
@@ -227,7 +292,9 @@ class _CategoryRating extends StatelessWidget {
                 onTap: () => onChanged(index),
                 child: Icon(
                   index <= rating ? Icons.star : Icons.star_border,
-                  color: index <= rating ? Colors.amber : Colors.grey,
+                  color: index <= rating
+                      ? AppColors.warning
+                      : AppColors.darkTextSecondary,
                   size: 28,
                 ),
               );
