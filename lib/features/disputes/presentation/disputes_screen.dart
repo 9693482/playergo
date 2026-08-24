@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/dispute_service.dart';
 
 class DisputesScreen extends StatefulWidget {
@@ -32,13 +36,13 @@ class _DisputesScreenState extends State<DisputesScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'OPEN':
-        return Colors.orange;
+        return AppColors.warning;
       case 'RESOLVED':
-        return Colors.green;
+        return AppColors.success;
       case 'CLOSED':
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
       default:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -58,119 +62,170 @@ class _DisputesScreenState extends State<DisputesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Disputas')),
+      backgroundColor: AppColors.darkBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Disputas',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _disputes.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.gavel, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No hay disputas abiertas',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    ],
+              ? Center(
+                  child: Container(
+                    margin: const EdgeInsets.all(AppSpacing.xxl),
+                    padding: const EdgeInsets.all(AppSpacing.xxxl),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkSurface,
+                      borderRadius: AppRadius.medium,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.gavel,
+                          size: 56,
+                          color: AppColors.darkTextSecondary,
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+                        Text(
+                          'No hay disputas abiertas',
+                          style: AppTypography.body1.copyWith(
+                            color: AppColors.darkTextSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : RefreshIndicator(
                   onRefresh: _loadDisputes,
+                  color: AppColors.primary,
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: _disputes.length,
                     itemBuilder: (context, index) {
                       final d = _disputes[index];
                       final statusColor = _getStatusColor(d.status);
 
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      d.reason,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statusColor.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Text(
-                                      _getStatusText(d.status),
-                                      style: TextStyle(
-                                        color: statusColor,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              if (d.description != null && d.description!.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                        padding: const EdgeInsets.all(AppSpacing.lg),
+                        decoration: BoxDecoration(
+                          color: AppColors.darkSurface,
+                          borderRadius: AppRadius.medium,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
                                   child: Text(
-                                    d.description!,
-                                    style: TextStyle(color: Colors.grey[700]),
+                                    d.reason,
+                                    style: AppTypography.subtitle2.copyWith(
+                                      color: AppColors.darkTextPrimary,
+                                    ),
                                   ),
                                 ),
-                              Row(
-                                children: [
-                                  Icon(Icons.person, size: 14, color: Colors.grey[500]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    d.openerName ?? 'Anónimo',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.md,
+                                    vertical: AppSpacing.xs,
                                   ),
-                                  const SizedBox(width: 16),
-                                  Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    DateFormat('dd/MM/yyyy HH:mm').format(d.createdAt),
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                  decoration: BoxDecoration(
+                                    color: statusColor.withAlpha(30),
+                                    borderRadius: AppRadius.full,
                                   ),
-                                ],
-                              ),
-                              if (d.resolution != null) ...[
-                                const SizedBox(height: 12),
-                                const Divider(),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: Text(
-                                        'Resolución: ${d.resolution}',
-                                        style: const TextStyle(
-                                          color: Colors.green,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
+                                  child: Text(
+                                    _getStatusText(d.status),
+                                    style: AppTypography.caption.copyWith(
+                                      color: statusColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                  ],
+                                  ),
                                 ),
                               ],
+                            ),
+                            const SizedBox(height: AppSpacing.sm),
+                            if (d.description != null && d.description!.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                child: Text(
+                                  d.description!,
+                                  style: AppTypography.body2.copyWith(
+                                    color: AppColors.darkTextSecondary,
+                                  ),
+                                ),
+                              ),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.person,
+                                  size: 14,
+                                  color: AppColors.darkTextSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  d.openerName ?? 'Anonimo',
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.darkTextSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.lg),
+                                const Icon(
+                                  Icons.access_time,
+                                  size: 14,
+                                  color: AppColors.darkTextSecondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  DateFormat('dd/MM/yyyy HH:mm').format(d.createdAt),
+                                  style: AppTypography.caption.copyWith(
+                                    color: AppColors.darkTextSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (d.resolution != null) ...[
+                              const SizedBox(height: AppSpacing.md),
+                              const Divider(
+                                color: AppColors.darkSurfaceVariant,
+                                height: 1,
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.check_circle,
+                                    size: 16,
+                                    color: AppColors.success,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      'Resolucion: ${d.resolution}',
+                                      style: AppTypography.body2.copyWith(
+                                        color: AppColors.success,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
-                          ),
+                          ],
                         ),
                       );
                     },
