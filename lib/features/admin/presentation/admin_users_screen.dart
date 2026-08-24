@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/admin_service.dart';
 
 class AdminUsersScreen extends StatefulWidget {
@@ -41,8 +45,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isBanned ? 'Usuario desbaneado' : 'Usuariobaneado'),
-          backgroundColor: isBanned ? Colors.green : Colors.red,
+          content: Text(isBanned ? 'Usuario desbaneado' : 'Usuario baneado'),
+          backgroundColor: isBanned ? AppColors.success : AppColors.error,
         ),
       );
     }
@@ -51,17 +55,32 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Gestionar Usuarios'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Gestionar Usuarios',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           PopupMenuButton<String?>(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list, color: AppColors.darkTextPrimary),
             onSelected: (value) {
               setState(() => _filterRole = value);
               _loadUsers();
             },
+            color: AppColors.darkSurface,
             itemBuilder: (_) => [
-              const PopupMenuItem(value: null, child: Text('Todos')),
+              const PopupMenuItem(
+                value: null,
+                child: Text('Todos'),
+              ),
               const PopupMenuItem(value: 'PLAYER', child: Text('Jugadores')),
               const PopupMenuItem(value: 'TEAM', child: Text('Equipos')),
               const PopupMenuItem(value: 'ADMIN', child: Text('Admins')),
@@ -70,47 +89,87 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _users.isEmpty
-              ? const Center(child: Text('No hay usuarios'))
+              ? Center(
+                  child: Text(
+                    'No hay usuarios',
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.darkTextSecondary,
+                    ),
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _loadUsers,
+                  color: AppColors.primary,
                   child: ListView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: _users.length,
                     itemBuilder: (context, index) {
                       final user = _users[index];
                       final isBanned = user['verification_status'] == 'REJECTED';
                       final role = user['role'] ?? 'UNKNOWN';
 
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: isBanned ? Colors.red : const Color(0xFF1B5E20),
-                          child: Text(
-                            (user['full_name'] ?? 'U')[0].toUpperCase(),
-                            style: const TextStyle(color: Colors.white),
-                          ),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: AppColors.darkSurface,
+                          borderRadius: AppRadius.medium,
                         ),
-                        title: Text(user['full_name'] ?? 'Sin nombre'),
-                        subtitle: Text(
-                          '${user['email'] ?? '-'} • $role',
-                          style: TextStyle(
-                            color: isBanned ? Colors.red : Colors.grey,
-                          ),
-                        ),
-                        trailing: PopupMenuButton(
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                              child: ListTile(
-                                leading: Icon(
-                                  isBanned ? Icons.check_circle : Icons.block,
-                                  color: isBanned ? Colors.green : Colors.red,
-                                ),
-                                title: Text(isBanned ? 'Desbanear' : 'Banear'),
-                                contentPadding: EdgeInsets.zero,
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor:
+                                isBanned ? AppColors.error : AppColors.primary,
+                            child: Text(
+                              (user['full_name'] ?? 'U')[0].toUpperCase(),
+                              style: AppTypography.subtitle2.copyWith(
+                                color: AppColors.textOnPrimary,
                               ),
-                              onTap: () => _toggleBan(user),
                             ),
-                          ],
+                          ),
+                          title: Text(
+                            user['full_name'] ?? 'Sin nombre',
+                            style: AppTypography.subtitle2.copyWith(
+                              color: AppColors.darkTextPrimary,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${user['email'] ?? '-'} • $role',
+                            style: AppTypography.caption.copyWith(
+                              color: isBanned
+                                  ? AppColors.error
+                                  : AppColors.darkTextSecondary,
+                            ),
+                          ),
+                          trailing: PopupMenuButton(
+                            icon: const Icon(
+                              Icons.more_vert,
+                              color: AppColors.darkTextSecondary,
+                            ),
+                            color: AppColors.darkSurface,
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                child: ListTile(
+                                  leading: Icon(
+                                    isBanned ? Icons.check_circle : Icons.block,
+                                    color: isBanned
+                                        ? AppColors.success
+                                        : AppColors.error,
+                                  ),
+                                  title: Text(
+                                    isBanned ? 'Desbanear' : 'Banear',
+                                    style: AppTypography.body2.copyWith(
+                                      color: AppColors.darkTextPrimary,
+                                    ),
+                                  ),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                                onTap: () => _toggleBan(user),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },

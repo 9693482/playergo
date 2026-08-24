@@ -1,6 +1,11 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/admin_service.dart';
 
 class AdminDisputesScreen extends StatefulWidget {
@@ -36,25 +41,55 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Resolver disputa'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Resolver disputa',
+          style: AppTypography.h3.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
         content: TextField(
           controller: controller,
           maxLines: 3,
-          decoration: const InputDecoration(
-            hintText: 'Escribe la resolución...',
-            border: OutlineInputBorder(),
+          style: AppTypography.body1.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Escribe la resolucion...',
+            hintStyle: AppTypography.body2.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+            filled: true,
+            fillColor: AppColors.darkBackground,
+            border: OutlineInputBorder(
+              borderRadius: AppRadius.small,
+              borderSide: BorderSide(color: AppColors.darkTextSecondary),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: AppRadius.small,
+              borderSide: BorderSide(
+                color: AppColors.darkTextSecondary.withAlpha(100),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: AppRadius.small,
+              borderSide: const BorderSide(color: AppColors.primary),
+            ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar'),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.darkTextSecondary),
+            ),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, controller.text),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B5E20),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
             ),
             child: const Text('Resolver'),
           ),
@@ -63,10 +98,10 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
     );
 
     if (result != null && result.isNotEmpty) {
-      final userId = await _adminService.isAdmin() ? '' : '';
+      final resolvedBy = Supabase.instance.client.auth.currentUser?.id ?? '';
       await _adminService.resolveDispute(
         disputeId: dispute['id'],
-        resolvedBy: userId,
+        resolvedBy: resolvedBy,
         resolution: result,
       );
       await _loadDisputes();
@@ -74,7 +109,7 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Disputa resuelta'),
-            backgroundColor: Colors.green,
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -83,25 +118,37 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'OPEN': return Colors.orange;
-      case 'RESOLVED': return Colors.green;
-      case 'CLOSED': return Colors.grey;
-      default: return Colors.grey;
+      case 'OPEN': return AppColors.warning;
+      case 'RESOLVED': return AppColors.success;
+      case 'CLOSED': return AppColors.darkTextSecondary;
+      default: return AppColors.darkTextSecondary;
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Gestionar Disputas'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Gestionar Disputas',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           PopupMenuButton<String?>(
-            icon: const Icon(Icons.filter_list),
+            icon: const Icon(Icons.filter_list, color: AppColors.darkTextPrimary),
             onSelected: (value) {
               setState(() => _filterStatus = value);
               _loadDisputes();
             },
+            color: AppColors.darkSurface,
             itemBuilder: (_) => [
               const PopupMenuItem(value: null, child: Text('Todas')),
               const PopupMenuItem(value: 'OPEN', child: Text('Abiertas')),
@@ -112,22 +159,37 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
           : _disputes.isEmpty
-              ? const Center(child: Text('No hay disputas'))
+              ? Center(
+                  child: Text(
+                    'No hay disputas',
+                    style: AppTypography.body1.copyWith(
+                      color: AppColors.darkTextSecondary,
+                    ),
+                  ),
+                )
               : RefreshIndicator(
                   onRefresh: _loadDisputes,
+                  color: AppColors.primary,
                   child: ListView.builder(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     itemCount: _disputes.length,
                     itemBuilder: (context, index) {
                       final d = _disputes[index];
                       final status = d['status'] ?? '';
                       final statusColor = _getStatusColor(status);
 
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                        decoration: BoxDecoration(
+                          color: AppColors.darkSurface,
+                          borderRadius: AppRadius.medium,
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(AppSpacing.lg),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -137,21 +199,25 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
                                   Expanded(
                                     child: Text(
                                       d['reason'] ?? '',
-                                      style: const TextStyle(fontWeight: FontWeight.bold),
+                                      style: AppTypography.subtitle2.copyWith(
+                                        color: AppColors.darkTextPrimary,
+                                      ),
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.md,
+                                      vertical: 6,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: statusColor.withAlpha(25),
-                                      borderRadius: BorderRadius.circular(12),
+                                      borderRadius: AppRadius.small,
                                     ),
                                     child: Text(
                                       status,
-                                      style: TextStyle(
+                                      style: AppTypography.caption.copyWith(
                                         color: statusColor,
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 11,
                                       ),
                                     ),
                                   ),
@@ -159,25 +225,35 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
                               ),
                               if (d['description'] != null && d['description'].isNotEmpty)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 8),
-                                  child: Text(d['description'], style: TextStyle(color: Colors.grey[700])),
+                                  padding: const EdgeInsets.only(top: AppSpacing.sm),
+                                  child: Text(
+                                    d['description'],
+                                    style: AppTypography.body2.copyWith(
+                                      color: AppColors.darkTextSecondary,
+                                    ),
+                                  ),
                                 ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSpacing.sm),
                               Row(
                                 children: [
                                   Text(
-                                    d['opener_profile']?['full_name'] ?? 'Anónimo',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                    d['opener_profile']?['full_name'] ?? 'Anonimo',
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.darkTextSecondary,
+                                    ),
                                   ),
                                   const Spacer(),
                                   Text(
-                                    DateFormat('dd/MM HH:mm').format(DateTime.parse(d['created_at'])),
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                    DateFormat('dd/MM HH:mm')
+                                        .format(DateTime.parse(d['created_at'])),
+                                    style: AppTypography.caption.copyWith(
+                                      color: AppColors.darkTextSecondary,
+                                    ),
                                   ),
                                 ],
                               ),
                               if (status == 'OPEN') ...[
-                                const SizedBox(height: 8),
+                                const SizedBox(height: AppSpacing.md),
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton.icon(
@@ -185,28 +261,34 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
                                     icon: const Icon(Icons.check),
                                     label: const Text('Resolver'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1B5E20),
-                                      foregroundColor: Colors.white,
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: AppColors.textOnPrimary,
                                     ),
                                   ),
                                 ),
                               ],
                               if (d['resolution'] != null) ...[
-                                const SizedBox(height: 8),
+                                const SizedBox(height: AppSpacing.sm),
                                 Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.all(AppSpacing.md),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.withAlpha(25),
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: AppColors.success.withAlpha(25),
+                                    borderRadius: AppRadius.small,
                                   ),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        Icons.check_circle,
+                                        size: 16,
+                                        color: AppColors.success,
+                                      ),
+                                      const SizedBox(width: AppSpacing.sm),
                                       Expanded(
                                         child: Text(
                                           d['resolution'],
-                                          style: const TextStyle(color: Colors.green, fontSize: 12),
+                                          style: AppTypography.caption.copyWith(
+                                            color: AppColors.success,
+                                          ),
                                         ),
                                       ),
                                     ],

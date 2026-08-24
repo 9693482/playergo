@@ -1,5 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/verification_service.dart';
 
 class AdminVerificationScreen extends StatefulWidget {
@@ -35,7 +39,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Documento aprobado'),
-          backgroundColor: Colors.green,
+          backgroundColor: AppColors.success,
         ),
       );
     }
@@ -46,23 +50,52 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Rechazar documento'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Rechazar documento',
+          style: AppTypography.h3.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
+          style: AppTypography.body1.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+          decoration: InputDecoration(
             labelText: 'Motivo del rechazo',
-            border: OutlineInputBorder(),
+            labelStyle: AppTypography.body2.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+            filled: true,
+            fillColor: AppColors.darkBackground,
+            border: OutlineInputBorder(
+              borderRadius: AppRadius.small,
+              borderSide: BorderSide(
+                color: AppColors.darkTextSecondary.withAlpha(100),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: AppRadius.small,
+              borderSide: const BorderSide(color: AppColors.error),
+            ),
           ),
           maxLines: 3,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppColors.darkTextSecondary),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, controller.text),
-            child: const Text('Rechazar', style: TextStyle(color: Colors.red)),
+            child: Text(
+              'Rechazar',
+              style: const TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -75,7 +108,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Documento rechazado'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.warning,
           ),
         );
       }
@@ -86,35 +119,60 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: AppColors.darkBackground,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.primary),
+        ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verificaciones pendientes')),
+      backgroundColor: AppColors.darkBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Verificaciones pendientes',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: _documents.isEmpty
-          ? const Center(
+          ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.check_circle, size: 64, color: Colors.green),
-                  SizedBox(height: 16),
+                  const Icon(
+                    Icons.check_circle,
+                    size: 64,
+                    color: AppColors.success,
+                  ),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     'No hay documentos pendientes',
-                    style: TextStyle(fontSize: 18),
+                    style: AppTypography.subtitle1.copyWith(
+                      color: AppColors.darkTextSecondary,
+                    ),
                   ),
                 ],
               ),
             )
           : ListView.builder(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: _documents.length,
               itemBuilder: (context, index) {
                 final doc = _documents[index];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
+                return Container(
+                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkSurface,                    borderRadius: AppRadius.medium,
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -123,37 +181,43 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                           children: [
                             Text(
                               _getDocTypeName(doc.documentType),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                              style: AppTypography.subtitle2.copyWith(
+                                color: AppColors.darkTextPrimary,
                               ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: AppSpacing.md,
+                                vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withAlpha(25),
-                                borderRadius: BorderRadius.circular(12),
+                                color: AppColors.warning.withAlpha(25),
+                                borderRadius: AppRadius.small,
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Pendiente',
-                                style: TextStyle(
-                                  color: Colors.orange,
+                                style: AppTypography.caption.copyWith(
+                                  color: AppColors.warning,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        Text('Documento: ${doc.documentNumber}'),
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          'Documento: ${doc.documentNumber}',
+                          style: AppTypography.body2.copyWith(
+                            color: AppColors.darkTextSecondary,
+                          ),
+                        ),
                         Text(
                           'Enviado: ${doc.createdAt.day}/${doc.createdAt.month}/${doc.createdAt.year}',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.darkTextSecondary,
+                          ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSpacing.md),
                         Row(
                           children: [
                             Expanded(
@@ -162,20 +226,20 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                                 icon: const Icon(Icons.close),
                                 label: const Text('Rechazar'),
                                 style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.red,
-                                  side: const BorderSide(color: Colors.red),
+                                  foregroundColor: AppColors.error,
+                                  side: const BorderSide(color: AppColors.error),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: ElevatedButton.icon(
                                 onPressed: () => _approveDocument(doc),
                                 icon: const Icon(Icons.check),
                                 label: const Text('Aprobar'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green,
-                                  foregroundColor: Colors.white,
+                                  backgroundColor: AppColors.success,
+                                  foregroundColor: AppColors.textOnPrimary,
                                 ),
                               ),
                             ),
@@ -193,9 +257,9 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   String _getDocTypeName(String type) {
     switch (type) {
       case 'CEDULA_CIUDADANIA':
-        return 'Cédula de Ciudadanía';
+        return 'Cedula de Ciudadania';
       case 'CEDULA_EXTRANJERIA':
-        return 'Cédula de Extranjería';
+        return 'Cedula de Extranjeria';
       case 'PASAPORTE':
         return 'Pasaporte';
       case 'NIT':
