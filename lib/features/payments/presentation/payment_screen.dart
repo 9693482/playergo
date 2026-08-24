@@ -1,6 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/payment_service.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -24,7 +28,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _isProcessing = false;
   bool _isCompleted = false;
 
-  double get _platformFee => widget.amount * (PaymentService.platformFeePercentage / 100);
+  double get _platformFee =>
+      widget.amount * (PaymentService.platformFeePercentage / 100);
   double get _totalAmount => widget.amount;
 
   Future<void> _processPayment() async {
@@ -51,9 +56,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pago exitoso'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Pago exitoso'),
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -62,7 +67,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error en el pago: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -75,122 +80,206 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Widget build(BuildContext context) {
     if (_isCompleted) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Pago Completado')),
+        backgroundColor: AppColors.darkBackground,
+        appBar: AppBar(
+          backgroundColor: AppColors.darkSurface,
+          title: Text(
+            'Pago Completado',
+            style: AppTypography.h2.copyWith(
+              color: AppColors.darkTextPrimary,
+            ),
+          ),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
         body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.check_circle, size: 80, color: Colors.green),
-              const SizedBox(height: 24),
-              const Text(
-                'Pago exitoso',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))} COP',
-                style: const TextStyle(
-                  fontSize: 20,
-                  color: Color(0xFF1B5E20),
-                  fontWeight: FontWeight.bold,
+          child: Container(
+            margin: const EdgeInsets.all(AppSpacing.xxl),
+            padding: const EdgeInsets.all(AppSpacing.xxxl),
+            decoration: BoxDecoration(
+              color: AppColors.darkSurface,
+              borderRadius: AppRadius.medium,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.check_circle, size: 64, color: AppColors.success),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'Pago exitoso',
+                  style: AppTypography.h2.copyWith(
+                    color: AppColors.darkTextPrimary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  '${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))} COP',
+                  style: AppTypography.subtitle1.copyWith(
+                    color: AppColors.primary,
+                  ),
                 ),
-                child: const Text('Volver'),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.xxl),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.medium,
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Text('Volver', style: AppTypography.button),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Realizar Pago')),
+      backgroundColor: AppColors.darkBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Realizar Pago',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Resumen del pago',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.darkSurface,
+                borderRadius: AppRadius.medium,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Resumen del pago',
+                    style: AppTypography.subtitle1.copyWith(
+                      color: AppColors.darkTextPrimary,
                     ),
-                    const SizedBox(height: 16),
-                    _SummaryRow(label: 'Jugador', value: widget.playerName),
-                    const Divider(),
-                    _SummaryRow(
-                      label: 'Monto del jugador',
-                      value: CurrencyInfo.format(widget.amount, CurrencyInfo.fromCountryCode('CO')),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  _SummaryRow(label: 'Jugador', value: widget.playerName),
+                  const _Divider(),
+                  _SummaryRow(
+                    label: 'Monto del jugador',
+                    value: CurrencyInfo.format(
+                      widget.amount,
+                      CurrencyInfo.fromCountryCode('CO'),
                     ),
-                    _SummaryRow(
-                      label: 'Comisión plataforma (${PaymentService.platformFeePercentage.toStringAsFixed(0)}%)',
-                      value: '- ${CurrencyInfo.format(_platformFee, CurrencyInfo.fromCountryCode('CO'))}',
-                      valueColor: Colors.red,
-                    ),
-                    const Divider(),
-                    _SummaryRow(
-                      label: 'Total a pagar',
-                      value: '${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))} COP',
-                      isBold: true,
-                    ),
-                  ],
-                ),
+                  ),
+                  _SummaryRow(
+                    label:
+                        'Comision plataforma (${PaymentService.platformFeePercentage.toStringAsFixed(0)}%)',
+                    value:
+                        '- ${CurrencyInfo.format(_platformFee, CurrencyInfo.fromCountryCode('CO'))}',
+                    valueColor: AppColors.error,
+                  ),
+                  const _Divider(),
+                  _SummaryRow(
+                    label: 'Total a pagar',
+                    value:
+                        '${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))} COP',
+                    isBold: true,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
-            Card(
-              color: Colors.blue[50],
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, color: Colors.blue[700]),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'En modo demo, el pago se procesa sin tarjeta real. En producción se integrará Stripe Checkout.',
-                        style: TextStyle(color: Colors.blue[700], fontSize: 13),
+            const SizedBox(height: AppSpacing.lg),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              decoration: BoxDecoration(
+                color: AppColors.info.withAlpha(25),
+                borderRadius: AppRadius.medium,
+                border: Border.all(
+                  color: AppColors.info.withAlpha(80),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: AppColors.info),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Text(
+                      'En modo demo, el pago se procesa sin tarjeta real. En produccion se integrara Stripe Checkout.',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.info,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.xl),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 52,
               child: ElevatedButton(
                 onPressed: _isProcessing ? null : _processPayment,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.medium,
                   ),
+                  elevation: 0,
                 ),
                 child: _isProcessing
-                    ? const CircularProgressIndicator(color: Colors.white)
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : Text(
                         'Pagar ${CurrencyInfo.format(_totalAmount, CurrencyInfo.fromCountryCode('CO'))}',
-                        style: const TextStyle(fontSize: 16),
+                        style: AppTypography.button,
                       ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Divider(
+        color: AppColors.darkSurfaceVariant,
+        height: 1,
       ),
     );
   }
@@ -212,18 +301,25 @@ class _SummaryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(
+            label,
+            style: AppTypography.body2.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
           Text(
             value,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-              fontSize: isBold ? 16 : 14,
-              color: valueColor ?? Colors.black87,
-            ),
+            style: isBold
+                ? AppTypography.subtitle2.copyWith(
+                    color: valueColor ?? AppColors.darkTextPrimary,
+                  )
+                : AppTypography.body2.copyWith(
+                    color: valueColor ?? AppColors.darkTextPrimary,
+                  ),
           ),
         ],
       ),
