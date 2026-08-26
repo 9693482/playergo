@@ -3,6 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/responsive/responsive.dart';
+import '../../../core/widgets/skeleton.dart';
+import '../../../core/widgets/state_view.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/circular_kpi.dart';
+import '../../../core/widgets/position_pod.dart';
+import '../../../core/widgets/quick_action_circular.dart';
+import '../../../core/widgets/circular_nav_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -30,21 +39,76 @@ class _TeamHomeScreenState extends ConsumerState<TeamHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final useRail = AppBreakpoints.isTablet(context);
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Row(
         children: [
-          const _TeamDashboard(),
-          const SearchScreen(),
-          const ChatListScreen(),
-          const TeamProfileScreen(),
+          if (useRail)
+            NavigationRail(
+              backgroundColor: AppColors.darkSurface,
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (i) => setState(() => _currentIndex = i),
+              labelType: NavigationRailLabelType.all,
+              selectedIconTheme:
+                  const IconThemeData(color: AppColors.primary, size: 24),
+              unselectedIconTheme: const IconThemeData(
+                color: AppColors.darkTextSecondary,
+                size: 24,
+              ),
+              selectedLabelTextStyle: AppTypography.caption
+                  .copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+              unselectedLabelTextStyle: AppTypography.caption
+                  .copyWith(color: AppColors.darkTextSecondary),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: Text('Inicio'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.search),
+                  selectedIcon: Icon(Icons.search),
+                  label: Text('Buscar'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.chat_bubble_outline),
+                  selectedIcon: Icon(Icons.chat_bubble),
+                  label: Text('Chats'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outlined),
+                  selectedIcon: Icon(Icons.person),
+                  label: Text('Perfil'),
+                ),
+              ],
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                const _TeamDashboard(),
+                const SearchScreen(),
+                const ChatListScreen(),
+                const TeamProfileScreen(),
+              ],
+            ),
+          ),
         ],
       ),
-      bottomNavigationBar: _CustomBottomNav(
-        selectedIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-      ),
+      bottomNavigationBar: useRail
+          ? null
+          : CircularNavBar(
+              items: const [
+                CircularNavItemData(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Inicio'),
+                CircularNavItemData(icon: Icons.search, activeIcon: Icons.search, label: 'Buscar'),
+                CircularNavItemData(icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: 'Chats'),
+                CircularNavItemData(icon: Icons.person_outlined, activeIcon: Icons.person, label: 'Perfil'),
+              ],
+              selectedIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+            ),
     );
   }
 }
@@ -56,6 +120,8 @@ class _TeamDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = AppLocalizations.of(context)!;
     final team = ref.watch(currentTeamProvider);
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final animate = !reduceMotion;
 
     return SafeArea(
       child: team.when(
@@ -64,25 +130,74 @@ class _TeamDashboard extends ConsumerWidget {
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppSpacing.lg),
-                _buildHeader(context, s),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildGreeting(t?.teamName ?? 'Equipo'),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildSubtitle(),
-                const SizedBox(height: AppSpacing.lg),
-                _buildPositionGrid(context),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildSearchButton(context),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildQuickActions(context),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildUpcomingSection(context, ref, t?.id),
-                const SizedBox(height: AppSpacing.xxxl),
-              ],
+            child: ResponsiveContainer(
+              maxWidth: 960,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpacing.lg),
+                  AnimatedEntrance(
+                    animate: animate,
+                    child: _buildHeader(context, ref, s),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Container(
+                    height: 2,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withAlpha(0),
+                          AppColors.primary,
+                          AppColors.primary.withAlpha(0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 80),
+                    animate: animate,
+                    child: _buildGreeting(t?.teamName ?? 'Equipo'),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 120),
+                    animate: animate,
+                    child: _buildSubtitle(),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 200),
+                    animate: animate,
+                    child: _buildKpiRow(animate),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 280),
+                    animate: animate,
+                    child: _buildPositionGrid(context),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 340),
+                    animate: animate,
+                    child: _buildSearchButton(context),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 400),
+                    animate: animate,
+                    child: _buildQuickActions(context),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 480),
+                    animate: animate,
+                    child: _buildUpcomingSection(context, ref, t?.id),
+                  ),
+                  const SizedBox(height: AppSpacing.xxxl),
+                ],
+              ),
             ),
           ),
         ),
@@ -94,7 +209,7 @@ class _TeamDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, AppLocalizations s) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref, AppLocalizations s) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -116,32 +231,46 @@ class _TeamDashboard extends ConsumerWidget {
             ],
           ),
         ),
-        IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          ),
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.darkTextPrimary,
-            size: 26,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              ),
+              icon: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.darkTextPrimary,
+                size: 26,
+              ),
+            ),
+            IconButton(
+              onPressed: () async {
+                await ref.read(authServiceProvider).signOut();
+                if (context.mounted) {
+                  Navigator.of(context).popUntil((r) => r.isFirst);
+                }
+              },
+              icon: const Icon(
+                Icons.logout,
+                color: AppColors.error,
+                size: 26,
+              ),
+              tooltip: 'Cerrar sesión',
+            ),
+          ],
         ),
       ],
     );
   }
 
   Widget _buildGreeting(String teamName) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Hola, $teamName 👋',
-          style: AppTypography.h1.copyWith(
-            color: AppColors.darkTextPrimary,
-          ),
-        ),
-      ],
+    return Text(
+      'Hola, $teamName 👋',
+      style: AppTypography.h1.copyWith(
+        color: AppColors.darkTextPrimary,
+      ),
     );
   }
 
@@ -154,34 +283,68 @@ class _TeamDashboard extends ConsumerWidget {
     );
   }
 
+  Widget _buildKpiRow(bool animate) {
+    return Row(
+      children: [
+        Expanded(
+          child: CircularKPI(
+            icon: Icons.group,
+            label: 'Equipo',
+            value: 0,
+            color: AppColors.primary,
+            ringProgress: 0,
+            statusLabel: 'Tu equipo',
+            animate: animate,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: CircularKPI(
+            icon: Icons.search,
+            label: 'Búsquedas',
+            value: 0,
+            color: AppColors.info,
+            ringProgress: 0,
+            statusLabel: 'Operativo',
+            animate: animate,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPositionGrid(BuildContext context) {
     return GridView.count(
-      crossAxisCount: 2,
+      crossAxisCount: 4,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppSpacing.md,
-      crossAxisSpacing: AppSpacing.md,
-      childAspectRatio: 1.6,
-      children: const [
-        _PositionCard(
+      mainAxisSpacing: AppSpacing.sm,
+      crossAxisSpacing: AppSpacing.sm,
+      childAspectRatio: 1.0,
+      children: [
+        PositionPod(
           emoji: '🧤',
           label: 'Arquero',
-          color: Color(0xFFFFF3E0),
+          color: AppColors.warning,
+          onTap: () => context.go('/search?position=Arquero'),
         ),
-        _PositionCard(
+        PositionPod(
           emoji: '🛡',
           label: 'Defensa',
-          color: Color(0xFFE3F2FD),
+          color: AppColors.info,
+          onTap: () => context.go('/search?position=Defensa'),
         ),
-        _PositionCard(
+        PositionPod(
           emoji: '⚽',
           label: 'Mediocampista',
-          color: Color(0xFFE8F5E9),
+          color: AppColors.primary,
+          onTap: () => context.go('/search?position=Mediocampista'),
         ),
-        _PositionCard(
+        PositionPod(
           emoji: '🏃',
           label: 'Delantero',
-          color: Color(0xFFFCE4EC),
+          color: AppColors.error,
+          onTap: () => context.go('/search?position=Delantero'),
         ),
       ],
     );
@@ -217,17 +380,19 @@ class _TeamDashboard extends ConsumerWidget {
     return Row(
       children: [
         Expanded(
-          child: _QuickActionCard(
+          child: QuickActionCircular(
             icon: Icons.qr_code_scanner,
             label: 'Escanear QR',
+            color: AppColors.primary,
             onTap: () {},
           ),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
-          child: _QuickActionCard(
+          child: QuickActionCircular(
             icon: Icons.calendar_month,
             label: 'Mis reservas',
+            color: AppColors.info,
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ReservationsScreen()),
@@ -255,140 +420,81 @@ class _TeamDashboard extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        FutureBuilder<List<Reservation>>(
-          future: ReservationService().getTeamReservations(teamId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.xxl),
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              );
-            }
-
-            final reservations = snapshot.data ?? [];
-            final upcoming = reservations
-                .where((r) =>
-                    r.status != ReservationStatus.cancelled &&
-                    r.status != ReservationStatus.completed &&
-                    r.status != ReservationStatus.rejected)
-                .take(3)
-                .toList();
-
-            if (upcoming.isEmpty) {
-              return _EmptyStateCard(
-                icon: Icons.calendar_today,
-                message: 'No tienes reservas próximas',
-              );
-            }
-
-            return Column(
-              children: upcoming
-                  .map((r) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _ReservationCard(reservation: r),
-                      ))
-                  .toList(),
-            );
-          },
-        ),
+        _TeamUpcomingReservations(teamId: teamId),
       ],
     );
   }
 }
 
-class _PositionCard extends StatelessWidget {
-  final String emoji;
-  final String label;
-  final Color color;
+class _TeamUpcomingReservations extends StatefulWidget {
+  final String teamId;
 
-  const _PositionCard({
-    required this.emoji,
-    required this.label,
-    required this.color,
-  });
+  const _TeamUpcomingReservations({required this.teamId});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: AppRadius.medium,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppRadius.medium,
-        child: InkWell(
-          borderRadius: AppRadius.medium,
-          onTap: () => context.go('/search?position=$label'),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 28)),
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  label,
-                  style: AppTypography.subtitle2.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  State<_TeamUpcomingReservations> createState() =>
+      _TeamUpcomingReservationsState();
 }
 
-class _QuickActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+class _TeamUpcomingReservationsState extends State<_TeamUpcomingReservations> {
+  late Future<List<Reservation>> _future;
+  Object? _error;
 
-  const _QuickActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<Reservation>> _load() async {
+    setState(() => _error = null);
+    try {
+      return await ReservationService().getTeamReservations(widget.teamId);
+    } catch (e) {
+      _error = e;
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppRadius.medium,
-        child: InkWell(
-          borderRadius: AppRadius.medium,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.lg,
-              horizontal: AppSpacing.md,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  label,
-                  style: AppTypography.body2.copyWith(
-                    color: AppColors.darkTextPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return StateView(
+      isLoading: false,
+      error: _error,
+      onRetry: () => setState(() => _future = _load()),
+      child: FutureBuilder<List<Reservation>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              _error == null) {
+            return const SkeletonList(itemCount: 3);
+          }
+
+          final reservations = snapshot.data ?? [];
+          final upcoming = reservations
+              .where((r) =>
+                  r.status != ReservationStatus.cancelled &&
+                  r.status != ReservationStatus.completed &&
+                  r.status != ReservationStatus.rejected)
+              .take(3)
+              .toList();
+
+          if (upcoming.isEmpty) {
+            return _EmptyStateCard(
+              icon: Icons.calendar_today,
+              message: 'No tienes reservas próximas',
+            );
+          }
+
+          return Column(
+            children: upcoming
+                .map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: _ReservationCard(reservation: r),
+                    ))
+                .toList(),
+          );
+        },
       ),
     );
   }
@@ -403,12 +509,8 @@ class _ReservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(reservation.status);
 
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
       child: Row(
         children: [
           Container(
@@ -514,129 +616,22 @@ class _EmptyStateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 36, color: AppColors.darkTextSecondary),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            message,
-            style: AppTypography.body2.copyWith(
-              color: AppColors.darkTextSecondary,
+      child: GlassCard(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          children: [
+            Icon(icon, size: 36, color: AppColors.darkTextSecondary),
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              message,
+              style: AppTypography.body2.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CustomBottomNav extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onTap;
-
-  const _CustomBottomNav({
-    required this.selectedIndex,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.darkSurface,
-        border: Border(
-          top: BorderSide(color: AppColors.darkSurfaceVariant, width: 0.5),
+          ],
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                label: 'Inicio',
-                isActive: selectedIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                icon: Icons.search,
-                activeIcon: Icons.search,
-                label: 'Buscar',
-                isActive: selectedIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_outline,
-                activeIcon: Icons.chat_bubble,
-                label: 'Chats',
-                isActive: selectedIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.person_outlined,
-                activeIcon: Icons.person,
-                label: 'Perfil',
-                isActive: selectedIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isActive ? activeIcon : icon,
-            color: isActive ? AppColors.primary : AppColors.darkTextSecondary,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTypography.caption.copyWith(
-              color: isActive ? AppColors.primary : AppColors.darkTextSecondary,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-        ],
       ),
     );
   }

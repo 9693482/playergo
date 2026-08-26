@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/responsive/responsive.dart';
+import '../../../core/widgets/skeleton.dart';
+import '../../../core/widgets/state_view.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/circular_kpi.dart';
+import '../../../core/widgets/quick_action_circular.dart';
+import '../../../core/widgets/circular_nav_bar.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -28,21 +36,76 @@ class _PlayerHomeScreenState extends ConsumerState<PlayerHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final useRail = AppBreakpoints.isTablet(context);
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Row(
         children: [
-          const _PlayerDashboard(),
-          const SearchScreen(),
-          const ChatListScreen(),
-          const PlayerProfileScreen(),
+          if (useRail)
+            NavigationRail(
+              backgroundColor: AppColors.darkSurface,
+              selectedIndex: _currentIndex,
+              onDestinationSelected: (i) => setState(() => _currentIndex = i),
+              labelType: NavigationRailLabelType.all,
+              selectedIconTheme:
+                  const IconThemeData(color: AppColors.primary, size: 24),
+              unselectedIconTheme: const IconThemeData(
+                color: AppColors.darkTextSecondary,
+                size: 24,
+              ),
+              selectedLabelTextStyle: AppTypography.caption
+                  .copyWith(color: AppColors.primary, fontWeight: FontWeight.w600),
+              unselectedLabelTextStyle: AppTypography.caption
+                  .copyWith(color: AppColors.darkTextSecondary),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: Text('Inicio'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.search),
+                  selectedIcon: Icon(Icons.search),
+                  label: Text('Buscar'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.chat_bubble_outline),
+                  selectedIcon: Icon(Icons.chat_bubble),
+                  label: Text('Chats'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outlined),
+                  selectedIcon: Icon(Icons.person),
+                  label: Text('Perfil'),
+                ),
+              ],
+            ),
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                const _PlayerDashboard(),
+                const SearchScreen(),
+                const ChatListScreen(),
+                const PlayerProfileScreen(),
+              ],
+            ),
+          ),
         ],
       ),
-      bottomNavigationBar: _CustomBottomNav(
-        selectedIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
-      ),
+      bottomNavigationBar: useRail
+          ? null
+          : CircularNavBar(
+              items: const [
+                CircularNavItemData(icon: Icons.home_outlined, activeIcon: Icons.home, label: 'Inicio'),
+                CircularNavItemData(icon: Icons.search, activeIcon: Icons.search, label: 'Buscar'),
+                CircularNavItemData(icon: Icons.chat_bubble_outline, activeIcon: Icons.chat_bubble, label: 'Chats'),
+                CircularNavItemData(icon: Icons.person_outlined, activeIcon: Icons.person, label: 'Perfil'),
+              ],
+              selectedIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+            ),
     );
   }
 }
@@ -54,6 +117,8 @@ class _PlayerDashboard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(currentProfileProvider);
     final player = ref.watch(currentPlayerProvider);
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final animate = !reduceMotion;
 
     return SafeArea(
       child: profile.when(
@@ -65,21 +130,56 @@ class _PlayerDashboard extends ConsumerWidget {
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: AppSpacing.lg),
-                _buildHeader(context),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildGreeting(p?.fullName ?? 'Jugador'),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildStatsCards(ref, player.value?.id),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildQuickActions(context),
-                const SizedBox(height: AppSpacing.xxl),
-                _buildUpcomingSection(context, ref, player.value?.id),
-                const SizedBox(height: AppSpacing.xxxl),
-              ],
+            child: ResponsiveContainer(
+              maxWidth: 960,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: AppSpacing.lg),
+                  AnimatedEntrance(
+                    animate: animate,
+                    child: _buildHeader(context, ref),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Container(
+                    height: 2,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withAlpha(0),
+                          AppColors.primary,
+                          AppColors.primary.withAlpha(0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 80),
+                    animate: animate,
+                    child: _buildGreeting(p?.fullName ?? 'Jugador'),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 160),
+                    animate: animate,
+                    child: _buildKPIs(animate),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 240),
+                    animate: animate,
+                    child: _buildQuickActions(context),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  AnimatedEntrance(
+                    delay: const Duration(milliseconds: 320),
+                    animate: animate,
+                    child: _buildUpcomingSection(context, ref, player.value?.id),
+                  ),
+                  const SizedBox(height: AppSpacing.xxxl),
+                ],
+              ),
             ),
           ),
         ),
@@ -91,7 +191,7 @@ class _PlayerDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -113,16 +213,36 @@ class _PlayerDashboard extends ConsumerWidget {
             ],
           ),
         ),
-        IconButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          ),
-          icon: const Icon(
-            Icons.notifications_outlined,
-            color: AppColors.darkTextPrimary,
-            size: 26,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+              ),
+              icon: const Icon(
+                Icons.notifications_outlined,
+                color: AppColors.darkTextPrimary,
+                size: 26,
+              ),
+              tooltip: 'Notificaciones',
+            ),
+            IconButton(
+              onPressed: () async {
+                await ref.read(authServiceProvider).signOut();
+                if (context.mounted) {
+                  Navigator.of(context).popUntil((r) => r.isFirst);
+                }
+              },
+              icon: const Icon(
+                Icons.logout,
+                color: AppColors.error,
+                size: 26,
+              ),
+              tooltip: 'Cerrar sesión',
+            ),
+          ],
         ),
       ],
     );
@@ -149,33 +269,42 @@ class _PlayerDashboard extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsCards(WidgetRef ref, String? playerId) {
+  Widget _buildKPIs(bool animate) {
     return Row(
       children: [
         Expanded(
-          child: _StatCard(
+          child: CircularKPI(
             icon: Icons.mail_outline,
             label: 'Solicitudes',
-            value: '0',
+            value: 0,
             color: AppColors.info,
+            ringProgress: 0,
+            statusLabel: 'Sin solicitudes',
+            animate: animate,
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: _StatCard(
+          child: CircularKPI(
             icon: Icons.check_circle_outline,
             label: 'Completados',
-            value: '0',
+            value: 0,
             color: AppColors.success,
+            ringProgress: 0,
+            statusLabel: 'Ninguno aún',
+            animate: animate,
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
+        const SizedBox(width: AppSpacing.sm),
         Expanded(
-          child: _StatCard(
-            icon: Icons.star_outline,
+          child: CircularKPI(
+            icon: Icons.star,
             label: 'Calificación',
-            value: '-',
+            value: 0,
             color: AppColors.warning,
+            ringProgress: 0,
+            statusLabel: 'Sin calificar',
+            animate: animate,
           ),
         ),
       ],
@@ -196,9 +325,10 @@ class _PlayerDashboard extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: _ActionCard(
+              child: QuickActionCircular(
                 icon: Icons.mail_outline,
                 label: 'Ver solicitudes',
+                color: AppColors.info,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const RequestsScreen()),
@@ -207,9 +337,10 @@ class _PlayerDashboard extends ConsumerWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: _ActionCard(
-                icon: Icons.calendar_month,
+              child: QuickActionCircular(
+                icon: Icons.event_available,
                 label: 'Disponibilidad',
+                color: AppColors.success,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const AvailabilityScreen()),
@@ -222,17 +353,19 @@ class _PlayerDashboard extends ConsumerWidget {
         Row(
           children: [
             Expanded(
-              child: _ActionCard(
+              child: QuickActionCircular(
                 icon: Icons.qr_code_scanner,
                 label: 'Mi QR',
+                color: AppColors.warning,
                 onTap: () {},
               ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: _ActionCard(
+              child: QuickActionCircular(
                 icon: Icons.calendar_month,
                 label: 'Mis reservas',
+                color: AppColors.info,
                 onTap: () => Navigator.push(
                   context,
                   MaterialPageRoute(builder: (_) => const ReservationsScreen()),
@@ -262,138 +395,79 @@ class _PlayerDashboard extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
-        FutureBuilder<List<Reservation>>(
-          future: ReservationService().getPlayerReservations(playerId),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.xxl),
-                  child: CircularProgressIndicator(color: AppColors.primary),
-                ),
-              );
-            }
-
-            final reservations = snapshot.data ?? [];
-            final recent = reservations
-                .where((r) =>
-                    r.status != ReservationStatus.cancelled &&
-                    r.status != ReservationStatus.rejected)
-                .take(3)
-                .toList();
-
-            if (recent.isEmpty) {
-              return _EmptyStateCard(
-                icon: Icons.inbox_outlined,
-                message: 'No tienes solicitudes recientes',
-              );
-            }
-
-            return Column(
-              children: recent
-                  .map((r) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _ReservationCard(reservation: r),
-                      ))
-                  .toList(),
-            );
-          },
-        ),
+        _UpcomingReservations(playerId: playerId),
       ],
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
+class _UpcomingReservations extends StatefulWidget {
+  final String playerId;
 
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
+  const _UpcomingReservations({required this.playerId});
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            value,
-            style: AppTypography.h2.copyWith(
-              color: AppColors.darkTextPrimary,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
+  State<_UpcomingReservations> createState() => _UpcomingReservationsState();
 }
 
-class _ActionCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
+class _UpcomingReservationsState extends State<_UpcomingReservations> {
+  late Future<List<Reservation>> _future;
+  Object? _error;
 
-  const _ActionCard({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
+  @override
+  void initState() {
+    super.initState();
+    _future = _load();
+  }
+
+  Future<List<Reservation>> _load() async {
+    setState(() => _error = null);
+    try {
+      return await ReservationService().getPlayerReservations(widget.playerId);
+    } catch (e) {
+      _error = e;
+      rethrow;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: AppRadius.medium,
-        child: InkWell(
-          borderRadius: AppRadius.medium,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.lg,
-              horizontal: AppSpacing.md,
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, color: AppColors.primary, size: 20),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  label,
-                  style: AppTypography.body2.copyWith(
-                    color: AppColors.darkTextPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+    return StateView(
+      isLoading: false,
+      error: _error,
+      onRetry: () => setState(() => _future = _load()),
+      child: FutureBuilder<List<Reservation>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              _error == null) {
+            return const SkeletonList(itemCount: 3);
+          }
+
+          final reservations = snapshot.data ?? [];
+          final recent = reservations
+              .where((r) =>
+                  r.status != ReservationStatus.cancelled &&
+                  r.status != ReservationStatus.rejected)
+              .take(3)
+              .toList();
+
+          if (recent.isEmpty) {
+            return _EmptyStateCard(
+              icon: Icons.inbox_outlined,
+              message: 'No tienes solicitudes recientes',
+            );
+          }
+
+          return Column(
+            children: recent
+                .map((r) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                      child: _ReservationCard(reservation: r),
+                    ))
+                .toList(),
+          );
+        },
       ),
     );
   }
@@ -408,12 +482,8 @@ class _ReservationCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final statusColor = _getStatusColor(reservation.status);
 
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
       child: Row(
         children: [
           Container(
@@ -518,134 +588,20 @@ class _ReservationCard extends StatelessWidget {
 class _EmptyStateCard extends StatelessWidget {
   final IconData icon;
   final String message;
-
   const _EmptyStateCard({required this.icon, required this.message});
-
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: 36, color: AppColors.darkTextSecondary),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            message,
-            style: AppTypography.body2.copyWith(
-              color: AppColors.darkTextSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CustomBottomNav extends StatelessWidget {
-  final int selectedIndex;
-  final ValueChanged<int> onTap;
-
-  const _CustomBottomNav({
-    required this.selectedIndex,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.darkSurface,
-        border: Border(
-          top: BorderSide(color: AppColors.darkSurfaceVariant, width: 0.5),
+      child: GlassCard(
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Column(
+          children: [
+            Icon(icon, size: 36, color: AppColors.darkTextSecondary),
+            const SizedBox(height: AppSpacing.md),
+            Text(message, style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary)),
+          ],
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _NavItem(
-                icon: Icons.home_outlined,
-                activeIcon: Icons.home,
-                label: 'Inicio',
-                isActive: selectedIndex == 0,
-                onTap: () => onTap(0),
-              ),
-              _NavItem(
-                icon: Icons.search,
-                activeIcon: Icons.search,
-                label: 'Buscar',
-                isActive: selectedIndex == 1,
-                onTap: () => onTap(1),
-              ),
-              _NavItem(
-                icon: Icons.chat_bubble_outline,
-                activeIcon: Icons.chat_bubble,
-                label: 'Chats',
-                isActive: selectedIndex == 2,
-                onTap: () => onTap(2),
-              ),
-              _NavItem(
-                icon: Icons.person_outlined,
-                activeIcon: Icons.person,
-                label: 'Perfil',
-                isActive: selectedIndex == 3,
-                onTap: () => onTap(3),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final IconData activeIcon;
-  final String label;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _NavItem({
-    required this.icon,
-    required this.activeIcon,
-    required this.label,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isActive ? activeIcon : icon,
-            color: isActive ? AppColors.primary : AppColors.darkTextSecondary,
-            size: 24,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: AppTypography.caption.copyWith(
-              color: isActive ? AppColors.primary : AppColors.darkTextSecondary,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
-        ],
       ),
     );
   }
