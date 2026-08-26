@@ -1,11 +1,15 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/responsive/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/glass_card.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
@@ -17,6 +21,8 @@ class PlayerProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(currentProfileProvider);
     final player = ref.watch(currentPlayerProvider);
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    final animate = !reduceMotion;
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
@@ -29,21 +35,65 @@ class PlayerProfileScreen extends ConsumerWidget {
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                children: [
-                  _buildHeader(p, player),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildInfoSection(context, p, player),
-                  const SizedBox(height: AppSpacing.lg),
-                  if (p.id.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.lg,
-                      ),
-                      child: _buildRatingsSection(p),
+              child: ResponsiveContainer(
+                maxWidth: 600,
+                child: Column(
+                  children: [
+                    AnimatedEntrance(
+                      delay: Duration.zero,
+                      animate: animate,
+                      child: _buildHeader(p, player),
                     ),
-                  const SizedBox(height: AppSpacing.xxxl),
-                ],
+                    AnimatedEntrance(
+                      delay: const Duration(milliseconds: 40),
+                      animate: animate,
+                      child: Container(
+                        height: 2,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withAlpha(0),
+                              AppColors.primary,
+                              AppColors.primary.withAlpha(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    AnimatedEntrance(
+                      delay: const Duration(milliseconds: 80),
+                      animate: animate,
+                      child: _buildInfoSection(context, p, player),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (p.id.isNotEmpty)
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 160),
+                        animate: animate,
+                        child: _buildAccountSection(context),
+                      ),
+                    const SizedBox(height: AppSpacing.lg),
+                    if (p.id.isNotEmpty)
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 240),
+                        animate: animate,
+                        child: _buildLogoutSection(context, ref),
+                      ),
+                    if (p.id.isNotEmpty)
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 320),
+                        animate: animate,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.lg,
+                          ),
+                          child: _buildRatingsSection(p),
+                        ),
+                      ),
+                    const SizedBox(height: AppSpacing.xxxl),
+                  ],
+                ),
               ),
             );
           },
@@ -161,13 +211,8 @@ class PlayerProfileScreen extends ConsumerWidget {
       child: player.when(
         data: (pl) {
           if (pl == null) {
-            return Container(
-              width: double.infinity,
+            return GlassCard(
               padding: const EdgeInsets.all(AppSpacing.xxl),
-              decoration: BoxDecoration(
-                color: AppColors.darkSurface,
-                borderRadius: AppRadius.medium,
-              ),
               child: Column(
                 children: [
                   const Icon(
@@ -202,12 +247,8 @@ class PlayerProfileScreen extends ConsumerWidget {
             );
           }
 
-          return Container(
+          return GlassCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
-            decoration: BoxDecoration(
-              color: AppColors.darkSurface,
-              borderRadius: AppRadius.medium,
-            ),
             child: Column(
               children: [
                 _InfoRow(
@@ -271,14 +312,30 @@ class PlayerProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRatingsSection(dynamic p) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
+  Widget _buildLogoutSection(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.logout, color: AppColors.error),
+          title: Text(
+            'Cerrar sesión',
+            style: AppTypography.subtitle2.copyWith(color: AppColors.error),
+          ),
+          trailing: const Icon(Icons.chevron_right, color: AppColors.darkTextSecondary),
+          onTap: () async {
+            await ref.read(authServiceProvider).signOut();
+            if (context.mounted) context.go('/login');
+          },
+        ),
       ),
+    );
+  }
+
+  Widget _buildRatingsSection(dynamic p) {
+    return GlassCard(
+      padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -291,6 +348,38 @@ class PlayerProfileScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.md),
           RatingSummaryWidget(userId: p.id),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAccountSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(
+            Icons.account_circle_outlined,
+            color: AppColors.primary,
+          ),
+          title: Text(
+            'Cuenta y privacidad',
+            style: AppTypography.subtitle2.copyWith(
+              color: AppColors.darkTextPrimary,
+            ),
+          ),
+          subtitle: Text(
+            'Verificación, legales y eliminar cuenta',
+            style: AppTypography.caption.copyWith(
+              color: AppColors.darkTextSecondary,
+            ),
+          ),
+          trailing: const Icon(
+            Icons.chevron_right,
+            color: AppColors.darkTextSecondary,
+          ),
+          onTap: () => context.push('/account'),
+        ),
       ),
     );
   }

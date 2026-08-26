@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/responsive/responsive.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class TeamProfileScreen extends ConsumerWidget {
@@ -12,136 +20,347 @@ class TeamProfileScreen extends ConsumerWidget {
     final team = ref.watch(currentTeamProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi Perfil'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: profile.when(
-        data: (p) {
-          if (p == null) return const Center(child: Text('Perfil no encontrado'));
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
+        child: profile.when(
+          data: (p) {
+            if (p == null) {
+              return const Center(child: Text('Perfil no encontrado'));
+            }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFFE65100),
-                    backgroundImage: p.photoUrl != null
-                        ? NetworkImage(p.photoUrl!)
-                        : null,
-                    child: p.photoUrl == null
-                        ? const Icon(Icons.group, size: 50, color: Colors.white)
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                team.when(
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ResponsiveContainer(
+                maxWidth: 600,
+                child: team.when(
                   data: (t) {
                     if (t == null) {
-                      return Center(
-                        child: Column(
-                          children: [
-                            Text(
-                              p.fullName ?? 'Sin nombre',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      return Column(
+                        children: [
+                          _buildHeader(p, null),
+                          const SizedBox(height: AppSpacing.lg),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
                             ),
-                            const SizedBox(height: 8),
-                            const Text('Aún no tienes perfil de equipo'),
-                            const SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: const Text('Crear equipo'),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Text(
-                            t.teamName,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _InfoRow(icon: Icons.group, label: 'Equipo', value: t.teamName),
-                                const Divider(),
-                                _InfoRow(icon: Icons.person, label: 'Capitán', value: t.captainName ?? '-'),
-                                const Divider(),
-                                _InfoRow(icon: Icons.phone, label: 'Teléfono', value: t.captainPhone ?? '-'),
-                                const Divider(),
-                                _InfoRow(icon: Icons.email, label: 'Correo', value: p.email ?? '-'),
-                                const Divider(),
-                                _InfoRow(
-                                  icon: Icons.star,
-                                  label: 'Calificación',
-                                  value: t.rating.toStringAsFixed(1),
-                                ),
-                                const Divider(),
-                                _InfoRow(
-                                  icon: Icons.sports,
-                                  label: 'Partidos jugados',
-                                  value: t.completedMatches.toString(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        if (t.description != null && t.description!.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Card(
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Descripción',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                            child: AnimatedEntrance(
+                              delay: const Duration(milliseconds: 100),
+                              child: GlassCard(
+                                child: Column(
+                                  children: [
+                                    const Icon(
+                                      Icons.group,
+                                      size: 48,
+                                      color: AppColors.darkTextSecondary,
                                     ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(t.description!),
-                                ],
+                                    const SizedBox(height: AppSpacing.md),
+                                    Text(
+                                      'Aun no tienes perfil de equipo',
+                                      style: AppTypography.body1.copyWith(
+                                        color: AppColors.darkTextSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppSpacing.lg),
+                                    ElevatedButton(
+                                      onPressed: () =>
+                                          context.push('/create-team'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor:
+                                            AppColors.textOnPrimary,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: AppRadius.medium,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Crear equipo',
+                                        style: AppTypography.button,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ],
+                      );
+                    }
+
+                    return Column(
+                      children: [
+                        _buildHeader(p, t),
+                        const _GradientDivider(),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildInfoSection(context, p, t),
+                        if (t.description != null &&
+                            t.description!.isNotEmpty) ...[
+                          const SizedBox(height: AppSpacing.lg),
+                          _buildDescriptionSection(t),
+                        ],
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildAccountSection(context),
+                        const SizedBox(height: AppSpacing.lg),
+                        _buildLogoutSection(context, ref),
+                        const SizedBox(height: AppSpacing.xxxl),
                       ],
                     );
                   },
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () => const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  ),
                   error: (e, _) => Center(child: Text('Error: $e')),
                 ),
-              ],
+              ),
+            );
+          },
+          loading: () => const Center(
+            child: CircularProgressIndicator(color: AppColors.primary),
+          ),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(dynamic p, dynamic t) {
+    final name = t != null ? t.teamName : (p.fullName ?? 'Sin nombre');
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final photoUrl = p.photoUrl;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
+      decoration: const BoxDecoration(
+        color: AppColors.darkSurface,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.darkSurfaceVariant,
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Column(
+        children: [
+          CircleAvatar(
+            radius: 48,
+            backgroundColor: AppColors.primary,
+            backgroundImage:
+                photoUrl != null ? NetworkImage(photoUrl) : null,
+            child: photoUrl == null
+                ? Text(
+                    initial,
+                    style: AppTypography.h1.copyWith(
+                      color: AppColors.textOnPrimary,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Text(
+            name,
+            style: AppTypography.h2.copyWith(
+              color: AppColors.darkTextPrimary,
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('Error: $e')),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.warning.withAlpha(30),
+              borderRadius: AppRadius.full,
+            ),
+            child: Text(
+              'EQUIPO',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.warning,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoSection(BuildContext context, dynamic p, dynamic t) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: AnimatedEntrance(
+        delay: const Duration(milliseconds: 150),
+        child: GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _InfoRow(
+                icon: Icons.group_outlined,
+                label: 'Equipo',
+                value: t.teamName,
+              ),
+              const _Divider(),
+              _InfoRow(
+                icon: Icons.person_outlined,
+                label: 'Capitan',
+                value: t.captainName ?? '-',
+              ),
+              const _Divider(),
+              _InfoRow(
+                icon: Icons.phone_outlined,
+                label: 'Telefono',
+                value: t.captainPhone ?? '-',
+              ),
+              const _Divider(),
+              _InfoRow(
+                icon: Icons.email_outlined,
+                label: 'Correo',
+                value: p.email ?? '-',
+              ),
+              const _Divider(),
+              _InfoRow(
+                icon: Icons.star_outline,
+                label: 'Calificacion',
+                value: t.rating.toStringAsFixed(1),
+                valueColor: AppColors.warning,
+              ),
+              const _Divider(),
+              _InfoRow(
+                icon: Icons.sports_soccer_outlined,
+                label: 'Partidos jugados',
+                value: t.completedMatches.toString(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDescriptionSection(dynamic t) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: AnimatedEntrance(
+        delay: const Duration(milliseconds: 250),
+        child: GlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Descripcion',
+                style: AppTypography.subtitle1.copyWith(
+                  color: AppColors.darkTextPrimary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                t.description!,
+                style: AppTypography.body1.copyWith(
+                  color: AppColors.darkTextSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: AnimatedEntrance(
+        delay: const Duration(milliseconds: 350),
+        child: GlassCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(
+              Icons.account_circle_outlined,
+              color: AppColors.primary,
+            ),
+            title: Text(
+              'Cuenta y privacidad',
+              style: AppTypography.subtitle2.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
+            ),
+            subtitle: Text(
+              'Verificacion, legales y eliminar cuenta',
+              style: AppTypography.caption.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: AppColors.darkTextSecondary,
+            ),
+            onTap: () => context.push('/account'),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutSection(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: AnimatedEntrance(
+        delay: const Duration(milliseconds: 450),
+        child: GlassCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(Icons.logout, color: AppColors.error),
+            title: Text(
+              'Cerrar sesion',
+              style: AppTypography.subtitle2.copyWith(
+                color: AppColors.error,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: AppColors.darkTextSecondary,
+            ),
+            onTap: () async {
+              await ref.read(authServiceProvider).signOut();
+              if (context.mounted) context.go('/login');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GradientDivider extends StatelessWidget {
+  const _GradientDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 2,
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.success],
+        ),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  const _Divider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Divider(
+        color: AppColors.darkSurfaceVariant,
+        height: 1,
       ),
     );
   }
@@ -151,24 +370,40 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
 
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(label, style: TextStyle(color: Colors.grey[600])),
-        ),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.darkTextSecondary),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.body2.copyWith(
+                color: AppColors.darkTextSecondary,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: AppTypography.body2.copyWith(
+              color: valueColor ?? AppColors.darkTextPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

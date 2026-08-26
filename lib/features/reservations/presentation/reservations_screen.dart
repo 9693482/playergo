@@ -3,6 +3,11 @@ import 'package:intl/intl.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/widgets/state_view.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/feedback/app_feedback.dart';
+import '../../../core/logging/app_logger.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -27,6 +32,8 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
   final _reservationService = ReservationService();
   List<Reservation> _reservations = [];
   bool _isLoading = true;
+  Object? _error;
+  bool _animate = true;
 
   @override
   void initState() {
@@ -35,14 +42,28 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
   }
 
   Future<void> _loadReservations() async {
-    final team = ref.read(currentTeamProvider).valueOrNull;
-    if (team == null) return;
-
-    final data = await _reservationService.getTeamReservations(team.id);
     setState(() {
-      _reservations = data;
-      _isLoading = false;
+      _isLoading = true;
+      _error = null;
     });
+    try {
+      final team = ref.read(currentTeamProvider).valueOrNull;
+      if (team == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      final data = await _reservationService.getTeamReservations(team.id);
+      setState(() {
+        _reservations = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e;
+        _isLoading = false;
+      });
+    }
   }
 
   Color _getStatusColor(ReservationStatus status) {
@@ -89,76 +110,129 @@ class _ReservationsScreenState extends ConsumerState<ReservationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
+    _animate = !reduceMotion;
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.darkSurface,
-        title: Text(
-          'Mis Reservas',
-          style: AppTypography.h2.copyWith(
-            color: AppColors.darkTextPrimary,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
-          onPressed: () => Navigator.pop(context),
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.lg,
+                AppSpacing.lg,
+                0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Player',
+                          style: AppTypography.h2.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+                        ),
+                        TextSpan(
+                          text: 'GO',
+                          style: AppTypography.h2.copyWith(
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: AppColors.darkTextPrimary,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              height: 2,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    AppColors.primary,
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: StateView(
+                isLoading: _isLoading,
+                error: _error,
+                onRetry: _loadReservations,
+                child: _reservations.isEmpty
+                    ? _buildEmptyState()
+                    : RefreshIndicator(
+                        onRefresh: _loadReservations,
+                        color: AppColors.primary,
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          itemCount: _reservations.length,
+                          itemBuilder: (context, index) {
+                            final r = _reservations[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: AppSpacing.md,
+                              ),
+                              child: _ReservationCard(
+                                reservation: r,
+                                statusColor: _getStatusColor(r.status),
+                                statusText: _getStatusText(r.status),
+                                onRefresh: _loadReservations,
+                                ref: ref,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _reservations.isEmpty
-              ? _buildEmptyState()
-              : RefreshIndicator(
-                  onRefresh: _loadReservations,
-                  color: AppColors.primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    itemCount: _reservations.length,
-                    itemBuilder: (context, index) {
-                      final r = _reservations[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: _ReservationCard(
-                          reservation: r,
-                          statusColor: _getStatusColor(r.status),
-                          statusText: _getStatusText(r.status),
-                          onRefresh: _loadReservations,
-                          ref: ref,
-                        ),
-                      );
-                    },
-                  ),
-                ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Container(
-        margin: const EdgeInsets.all(AppSpacing.xxl),
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        decoration: BoxDecoration(
-          color: AppColors.darkSurface,
-          borderRadius: AppRadius.medium,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.calendar_month,
-              size: 56,
-              color: AppColors.darkTextSecondary,
+      child: AnimatedEntrance(
+        animate: _animate,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: GlassCard(
+            padding: const EdgeInsets.all(AppSpacing.xxxl),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_month,
+                  size: 56,
+                  color: AppColors.darkTextSecondary,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Text(
+                  'No tienes reservas aun',
+                  style: AppTypography.body1.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: AppSpacing.lg),
-            Text(
-              'No tienes reservas aun',
-              style: AppTypography.body1.copyWith(
-                color: AppColors.darkTextSecondary,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -222,7 +296,11 @@ class _ReservationCard extends StatelessWidget {
           const SizedBox(height: AppSpacing.md),
           Row(
             children: [
-              const Icon(Icons.access_time, size: 16, color: AppColors.darkTextSecondary),
+              const Icon(
+                Icons.access_time,
+                size: 16,
+                color: AppColors.darkTextSecondary,
+              ),
               const SizedBox(width: AppSpacing.xs),
               Text(
                 '${reservation.startTime} - ${reservation.endTime}',
@@ -231,7 +309,11 @@ class _ReservationCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.lg),
-              const Icon(Icons.attach_money, size: 16, color: AppColors.darkTextSecondary),
+              const Icon(
+                Icons.attach_money,
+                size: 16,
+                color: AppColors.darkTextSecondary,
+              ),
               Text(
                 CurrencyInfo.format(
                   reservation.totalPrice,
@@ -282,7 +364,8 @@ class _ReservationCard extends StatelessWidget {
                   team.id,
                   reservationId: reservation.id,
                 );
-                final playerName = await chatService.getPlayerName(reservation.playerId);
+                final playerName =
+                    await chatService.getPlayerName(reservation.playerId);
                 if (!context.mounted) return;
                 Navigator.push(
                   context,
@@ -344,15 +427,21 @@ class _ReservationCard extends StatelessWidget {
                   ),
                 );
                 if (confirm == true) {
-                  await ReservationService().completeReservation(reservation.id);
-                  onRefresh();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Reserva completada'),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
+                  try {
+                    await ReservationService()
+                        .completeReservation(reservation.id);
+                    onRefresh();
+                    if (context.mounted) {
+                      AppFeedback.showSuccess(context, 'Reserva completada');
+                    }
+                  } catch (e) {
+                    AppLogger.error('Error al completar reserva', e);
+                    if (context.mounted) {
+                      AppFeedback.showError(
+                        context,
+                        'No se pudo completar la reserva',
+                      );
+                    }
                   }
                 }
               },
@@ -410,13 +499,14 @@ class _ActionButton extends StatelessWidget {
       child: ElevatedButton.icon(
         onPressed: onTap,
         icon: Icon(icon, size: 18),
-        label: Text(label, style: AppTypography.button.copyWith(fontSize: 14)),
+        label: Text(
+          label,
+          style: AppTypography.button.copyWith(fontSize: 14),
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor,
           foregroundColor: foregroundColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.small,
-          ),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.small),
           elevation: 0,
         ),
       ),

@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../data/chat_service.dart';
 import 'chat_screen.dart';
 
@@ -57,119 +65,213 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mensajes'),
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _chats.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No hay conversaciones aún',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Contacta un jugador o equipo para empezar',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadChats,
-                  child: ListView.separated(
-                    itemCount: _chats.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final chat = _chats[index];
-                      final otherName = _getOtherName(chat);
-                      final hasUnread = chat.unreadCountPlayer > 0 ||
-                          chat.unreadCountTeam > 0;
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: _isLoading
+                  ? const SkeletonList()
+                  : _chats.isEmpty
+                      ? const EmptyState(
+                          illustration: Icons.chat_bubble_outline,
+                          title: 'No hay conversaciones aún',
+                          message: 'Contacta un jugador o equipo para empezar.',
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadChats,
+                          color: AppColors.primary,
+                          backgroundColor: AppColors.darkSurface,
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.lg,
+                              vertical: AppSpacing.md,
+                            ),
+                            itemCount: _chats.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: AppSpacing.sm),
+                            itemBuilder: (context, index) {
+                              final chat = _chats[index];
+                              final otherName = _getOtherName(chat);
+                              final hasUnread = chat.unreadCountPlayer > 0 ||
+                                  chat.unreadCountTeam > 0;
 
-                      return ListTile(
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: const Color(0xFF1B5E20),
-                          child: Text(
-                            otherName[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        title: Text(
-                          otherName,
-                          style: TextStyle(
-                            fontWeight:
-                                hasUnread ? FontWeight.bold : FontWeight.normal,
-                          ),
-                        ),
-                        subtitle: Text(
-                          chat.lastMessage ?? 'Sin mensajes',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: hasUnread ? Colors.black87 : Colors.grey,
-                            fontWeight:
-                                hasUnread ? FontWeight.w500 : FontWeight.normal,
-                          ),
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              _formatDate(chat.lastMessageAt),
-                              style: TextStyle(
-                                color: hasUnread
-                                    ? const Color(0xFF1B5E20)
-                                    : Colors.grey,
-                                fontSize: 12,
-                              ),
-                            ),
-                            if (hasUnread) ...[
-                              const SizedBox(height: 4),
-                              Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF1B5E20),
-                                  shape: BoxShape.circle,
+                              return AnimatedEntrance(
+                                delay: Duration(milliseconds: 60 * index),
+                                animate: !reduceMotion,
+                                child: _ChatItem(
+                                  chat: chat,
+                                  otherName: otherName,
+                                  hasUnread: hasUnread,
+                                  date: _formatDate(chat.lastMessageAt),
+                                  unreadCount: chat.unreadCountPlayer +
+                                      chat.unreadCountTeam,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ChatScreen(
+                                          chatId: chat.id,
+                                          otherName: otherName,
+                                        ),
+                                      ),
+                                    ).then((_) => _loadChats());
+                                  },
                                 ),
-                                child: Text(
-                                  '${chat.unreadCountPlayer + chat.unreadCountTeam}',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
+                              );
+                            },
+                          ),
                         ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                chatId: chat.id,
-                                otherName: otherName,
-                              ),
-                            ),
-                          ).then((_) => _loadChats());
-                        },
-                      );
-                    },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              Text(
+                '⚽',
+                style: AppTypography.h2,
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Text(
+                'Mensajes',
+                style: AppTypography.h2.copyWith(
+                  color: AppColors.darkTextPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          height: 2,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withAlpha(0),
+                AppColors.primary,
+                AppColors.primary.withAlpha(0),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ChatItem extends StatelessWidget {
+  final Chat chat;
+  final String otherName;
+  final bool hasUnread;
+  final String date;
+  final int unreadCount;
+  final VoidCallback onTap;
+
+  const _ChatItem({
+    required this.chat,
+    required this.otherName,
+    required this.hasUnread,
+    required this.date,
+    required this.unreadCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
+        borderRadius: AppRadius.lg,
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.primary,
+              child: Text(
+                otherName[0].toUpperCase(),
+                style: AppTypography.h3.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    otherName,
+                    style: AppTypography.subtitle1.copyWith(
+                      fontWeight:
+                          hasUnread ? FontWeight.bold : FontWeight.w600,
+                      color: AppColors.darkTextPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    chat.lastMessage ?? 'Sin mensajes',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.body2.copyWith(
+                      color: hasUnread
+                          ? AppColors.darkTextPrimary
+                          : AppColors.darkTextSecondary,
+                      fontWeight:
+                          hasUnread ? FontWeight.w500 : FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  date,
+                  style: AppTypography.caption.copyWith(
+                    color: hasUnread
+                        ? AppColors.primary
+                        : AppColors.darkTextSecondary,
                   ),
                 ),
+                if (hasUnread) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      '$unreadCount',
+                      style: AppTypography.overline.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

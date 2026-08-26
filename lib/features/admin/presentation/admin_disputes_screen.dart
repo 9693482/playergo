@@ -1,6 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/feedback/app_feedback.dart';
+import '../../../core/logging/app_logger.dart';
+import '../../../core/responsive/responsive.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/state_view.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -19,6 +26,7 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
   final _adminService = AdminService();
   List<Map<String, dynamic>> _disputes = [];
   bool _isLoading = true;
+  Object? _error;
   String? _filterStatus;
 
   @override
@@ -28,12 +36,22 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
   }
 
   Future<void> _loadDisputes() async {
-    setState(() => _isLoading = true);
-    final data = await _adminService.getAllDisputes(status: _filterStatus);
     setState(() {
-      _disputes = data;
-      _isLoading = false;
+      _isLoading = true;
+      _error = null;
     });
+    try {
+      final data = await _adminService.getAllDisputes(status: _filterStatus);
+      setState(() {
+        _disputes = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _resolveDispute(Map<String, dynamic> dispute) async {
@@ -99,19 +117,21 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
 
     if (result != null && result.isNotEmpty) {
       final resolvedBy = Supabase.instance.client.auth.currentUser?.id ?? '';
-      await _adminService.resolveDispute(
-        disputeId: dispute['id'],
-        resolvedBy: resolvedBy,
-        resolution: result,
-      );
-      await _loadDisputes();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Disputa resuelta'),
-            backgroundColor: AppColors.success,
-          ),
+      try {
+        await _adminService.resolveDispute(
+          disputeId: dispute['id'],
+          resolvedBy: resolvedBy,
+          resolution: result,
         );
+        await _loadDisputes();
+        if (mounted) {
+          AppFeedback.showSuccess(context, 'Disputa resuelta');
+        }
+      } catch (e) {
+        AppLogger.error('Error al resolver disputa', e);
+        if (mounted) {
+          AppFeedback.showError(context, 'No se pudo resolver la disputa');
+        }
       }
     }
   }
@@ -158,36 +178,34 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _disputes.isEmpty
-              ? Center(
-                  child: Text(
-                    'No hay disputas',
-                    style: AppTypography.body1.copyWith(
-                      color: AppColors.darkTextSecondary,
-                    ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadDisputes,
-                  color: AppColors.primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    itemCount: _disputes.length,
-                    itemBuilder: (context, index) {
-                      final d = _disputes[index];
-                      final status = d['status'] ?? '';
-                      final statusColor = _getStatusColor(status);
+      body: ResponsiveContainer(
+        maxWidth: 960,
+        child: StateView(
+          isLoading: _isLoading,
+          error: _error,
+          onRetry: _loadDisputes,
+          child: _disputes.isEmpty
+            ? EmptyState(
+                illustration: Icons.gavel_outlined,
+                title: 'No hay disputas',
+                message:
+                    'Cuando un usuario reporte un problema con una reserva, lo verás aquí.',
+              )
+            : RefreshIndicator(
+                onRefresh: _loadDisputes,
+                color: AppColors.primary,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: _disputes.length,
+                  itemBuilder: (context, index) {
+                    final d = _disputes[index];
+                    final status = d['status'] ?? '';
+                    final statusColor = _getStatusColor(status);
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.darkSurface,
-                          borderRadius: AppRadius.medium,
-                        ),
+                    return AnimatedEntrance(
+                      delay: Duration(milliseconds: index * 60),
+                      child: GlassCard(
+                        padding: EdgeInsets.zero,
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.lg),
                           child: Column(
@@ -298,10 +316,13 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
+              ),
+          ),
+        ),
     );
   }
 }

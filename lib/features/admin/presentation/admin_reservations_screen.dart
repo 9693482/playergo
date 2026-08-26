@@ -1,5 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../../core/logging/app_logger.dart';
+import '../../../core/responsive/responsive.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/state_view.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -18,33 +24,77 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
   final _adminService = AdminService();
   List<Map<String, dynamic>> _reservations = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  Object? _error;
   String? _filterStatus;
+
+  static const int _pageSize = 30;
 
   @override
   void initState() {
     super.initState();
-    _loadReservations();
+    _loadReservations(reset: true);
   }
 
-  Future<void> _loadReservations() async {
-    setState(() => _isLoading = true);
-    final data = await _adminService.getAllReservations(status: _filterStatus);
-    setState(() {
-      _reservations = data;
-      _isLoading = false;
-    });
+  Future<void> _loadReservations({bool reset = false}) async {
+    if (reset) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+        _reservations = [];
+        _hasMore = true;
+      });
+    } else {
+      setState(() => _isLoadingMore = true);
+    }
+
+    try {
+      final offset = reset ? 0 : _reservations.length;
+      final data = await _adminService.getAllReservations(
+        status: _filterStatus,
+        limit: _pageSize,
+        offset: offset,
+      );
+      setState(() {
+        if (reset) {
+          _reservations = data;
+        } else {
+          _reservations.addAll(data);
+        }
+        _hasMore = data.length >= _pageSize;
+        _isLoading = false;
+        _isLoadingMore = false;
+        _error = null;
+      });
+    } catch (e) {
+      AppLogger.error('Error cargando reservas (admin)', e);
+      setState(() {
+        _error = e;
+        _isLoading = false;
+        _isLoadingMore = false;
+      });
+    }
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'PENDING': return AppColors.warning;
-      case 'ACCEPTED': return AppColors.success;
-      case 'REJECTED': return AppColors.error;
-      case 'COMPLETED': return AppColors.info;
-      case 'CANCELLED': return AppColors.darkTextSecondary;
-      case 'PAID': return AppColors.primary;
-      case 'CONFIRMED': return AppColors.primary;
-      default: return AppColors.darkTextSecondary;
+      case 'PENDING':
+        return AppColors.warning;
+      case 'ACCEPTED':
+        return AppColors.success;
+      case 'REJECTED':
+        return AppColors.error;
+      case 'COMPLETED':
+        return AppColors.info;
+      case 'CANCELLED':
+        return AppColors.darkTextSecondary;
+      case 'PAID':
+        return AppColors.primary;
+      case 'CONFIRMED':
+        return AppColors.primary;
+      default:
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -69,7 +119,7 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
             icon: const Icon(Icons.filter_list, color: AppColors.darkTextPrimary),
             onSelected: (value) {
               setState(() => _filterStatus = value);
-              _loadReservations();
+              _loadReservations(reset: true);
             },
             color: AppColors.darkSurface,
             itemBuilder: (_) => [
@@ -82,36 +132,55 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            )
-          : _reservations.isEmpty
-              ? Center(
-                  child: Text(
-                    'No hay reservas',
-                    style: AppTypography.body1.copyWith(
-                      color: AppColors.darkTextSecondary,
-                    ),
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadReservations,
-                  color: AppColors.primary,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    itemCount: _reservations.length,
-                    itemBuilder: (context, index) {
-                      final r = _reservations[index];
-                      final status = r['status'] ?? '';
-                      final statusColor = _getStatusColor(status);
-
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        decoration: BoxDecoration(
-                          color: AppColors.darkSurface,
-                          borderRadius: AppRadius.medium,
+      body: ResponsiveContainer(
+        maxWidth: 960,
+        child: StateView(
+          isLoading: _isLoading,
+          error: _error,
+          onRetry: () => _loadReservations(reset: true),
+          child: _reservations.isEmpty
+            ? EmptyState(
+                illustration: Icons.event_busy_outlined,
+                title: 'No hay reservas',
+                message:
+                    'Las reservas de las canchas aparecerán aquí en tiempo real.',
+              )
+            : RefreshIndicator(
+                onRefresh: () => _loadReservations(reset: true),
+                color: AppColors.primary,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: _reservations.length + (_hasMore ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index >= _reservations.length) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+                        child: Center(
+                          child: _isLoadingMore
+                              ? const CircularProgressIndicator(
+                                  color: AppColors.primary,
+                                )
+                              : ElevatedButton.icon(
+                                  onPressed: () => _loadReservations(),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Cargar mas'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.darkSurface,
+                                    foregroundColor: AppColors.darkTextPrimary,
+                                  ),
+                                ),
                         ),
+                      );
+                    }
+
+                    final r = _reservations[index];
+                    final status = r['status'] ?? '';
+                    final statusColor = _getStatusColor(status);
+
+                    return AnimatedEntrance(
+                      delay: Duration(milliseconds: index * 60),
+                      child: GlassCard(
+                        padding: EdgeInsets.zero,
                         child: Padding(
                           padding: const EdgeInsets.all(AppSpacing.lg),
                           child: Row(
@@ -156,10 +225,13 @@ class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
                             ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
+              ),
+          ),
+        ),
     );
   }
 }

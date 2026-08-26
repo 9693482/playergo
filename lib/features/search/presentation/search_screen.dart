@@ -2,11 +2,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/responsive/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/geo_helper.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/glass_card.dart';
 import '../../location/data/location_service.dart';
 import '../../reservations/presentation/create_reservation_screen.dart';
 import '../data/search_service.dart';
@@ -80,64 +83,78 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildFiltersCard(),
-                    const SizedBox(height: AppSpacing.xxl),
-                    _buildResultsSection(),
-                    const SizedBox(height: AppSpacing.xxxl),
-                  ],
+        child: ResponsiveContainer(
+          maxWidth: 600,
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: AppSpacing.lg),
+                      AnimatedEntrance(
+                        animate: !reduceMotion,
+                        child: _buildFiltersCard(),
+                      ),
+                      const SizedBox(height: AppSpacing.xxl),
+                      _buildResultsSection(),
+                      const SizedBox(height: AppSpacing.xxxl),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: const BoxDecoration(
-        color: AppColors.darkSurface,
-        border: Border(
-          bottom: BorderSide(color: AppColors.darkSurfaceVariant, width: 0.5),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              Text(
+                'PlayerGO',
+                style: AppTypography.h2.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const Spacer(),
+              const Icon(Icons.search, color: AppColors.darkTextPrimary, size: 24),
+            ],
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.search, color: AppColors.darkTextPrimary, size: 24),
-          const SizedBox(width: AppSpacing.md),
-          Text(
-            'Buscar Jugadores',
-            style: AppTypography.h2.copyWith(
-              color: AppColors.darkTextPrimary,
+        Container(
+          height: 2,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withAlpha(0),
+                AppColors.primary,
+                AppColors.primary.withAlpha(0),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildFiltersCard() {
-    return Container(
+    return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -336,6 +353,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildResultsSection() {
+    final reduceMotion = MediaQuery.of(context).disableAnimations;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -347,29 +365,40 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         const SizedBox(height: AppSpacing.md),
         if (!_hasSearched)
-          _buildEmptyState(
-            icon: Icons.search,
-            message: 'Selecciona filtros y presiona buscar',
+          AnimatedEntrance(
+            animate: !reduceMotion,
+            child: _buildEmptyState(
+              icon: Icons.search,
+              message: 'Selecciona filtros y presiona buscar',
+            ),
           )
         else if (_results.isEmpty)
-          _buildEmptyState(
-            icon: Icons.search_off,
-            message: 'No se encontraron jugadores',
+          AnimatedEntrance(
+            animate: !reduceMotion,
+            child: _buildEmptyState(
+              icon: Icons.search_off,
+              message: 'No se encontraron jugadores',
+            ),
           )
         else
-          ..._results.map(
-            (player) => Padding(
+          ..._results.asMap().entries.map(
+            (entry) => Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: _PlayerCard(
-                player: player,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CreateReservationScreen(player: player),
-                    ),
-                  );
-                },
+              child: AnimatedEntrance(
+                animate: !reduceMotion,
+                delay: Duration(milliseconds: entry.key * 80),
+                child: _PlayerCard(
+                  player: entry.value,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            CreateReservationScreen(player: entry.value),
+                      ),
+                    );
+                  },
+                ),
               ),
             ),
           ),
@@ -378,13 +407,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Widget _buildEmptyState({required IconData icon, required String message}) {
-    return Container(
-      width: double.infinity,
+    return GlassCard(
       padding: const EdgeInsets.all(AppSpacing.xxxl),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: AppRadius.medium,
-      ),
       child: Column(
         children: [
           Icon(icon, size: 48, color: AppColors.darkTextSecondary),
@@ -454,7 +478,8 @@ class _PlayerCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.star, size: 14, color: AppColors.warning),
+                        const Icon(Icons.star,
+                            size: 14, color: AppColors.warning),
                         const SizedBox(width: 4),
                         Text(
                           rating.toStringAsFixed(1),
@@ -478,7 +503,8 @@ class _PlayerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    CurrencyInfo.format(price, CurrencyInfo.fromCountryCode('CO')),
+                    CurrencyInfo.format(
+                        price, CurrencyInfo.fromCountryCode('CO')),
                     style: AppTypography.subtitle1.copyWith(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w600,

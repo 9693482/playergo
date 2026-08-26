@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/skeleton.dart';
 import '../data/notification_service.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -54,17 +61,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Color _getColor(String type) {
     switch (type) {
       case 'reservation_request':
-        return Colors.blue;
+        return AppColors.info;
       case 'reservation_accepted':
-        return Colors.green;
+        return AppColors.success;
       case 'reservation_rejected':
-        return Colors.red;
+        return AppColors.error;
       case 'payment':
-        return Colors.orange;
+        return AppColors.warning;
       case 'chat':
-        return Colors.purple;
+        return AppColors.primary;
       default:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -81,93 +88,200 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Notificaciones'),
-        actions: [
-          if (_notifications.any((n) => n['is_read'] == false))
-            TextButton(
-              onPressed: _markAllRead,
-              child: const Text('Marcar todo leído'),
-            ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _notifications.isEmpty
-              ? const Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.notifications_none, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
-                      Text(
-                        'No hay notificaciones',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadNotifications,
-                  child: ListView.separated(
-                    itemCount: _notifications.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final notif = _notifications[index];
-                      final isRead = notif['is_read'] == true;
-                      final type = notif['type'] as String? ?? '';
-
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: _getColor(type).withAlpha(25),
-                          child: Icon(
-                            _getIcon(type),
-                            color: _getColor(type),
-                            size: 20,
-                          ),
-                        ),
-                        title: Text(
-                          notif['title'] ?? '',
-                          style: TextStyle(
-                            fontWeight: isRead ? FontWeight.normal : FontWeight.bold,
-                          ),
-                        ),
-                        subtitle: Text(
-                          notif['body'] ?? '',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        trailing: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              _formatDate(notif['created_at'] ?? ''),
-                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
+        child: _isLoading
+            ? const SkeletonList()
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg,
+                      vertical: AppSpacing.md,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Notificaciones',
+                            style: AppTypography.h2.copyWith(
+                              color: AppColors.darkTextPrimary,
                             ),
-                            if (!isRead) ...[
-                              const SizedBox(height: 4),
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF1B5E20),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                            ],
-                          ],
+                          ),
                         ),
-                        onTap: () {
-                          _service.markAsRead(notif['id']);
-                          setState(() {
-                            _notifications[index]['is_read'] = true;
-                          });
-                        },
-                      );
-                    },
+                        if (_notifications
+                            .any((n) => n['is_read'] == false))
+                          TextButton(
+                            onPressed: _markAllRead,
+                            child: Text(
+                              'Marcar todo leído',
+                              style: AppTypography.caption.copyWith(
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                ),
+                  Container(
+                    height: 2,
+                    margin: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary,
+                          AppColors.success,
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  Expanded(
+                    child: _notifications.isEmpty
+                        ? const EmptyState(
+                            illustration: Icons.notifications_none,
+                            title: 'No hay notificaciones',
+                            message:
+                                'Te avisaremos cuando pase algo importante.',
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadNotifications,
+                            color: AppColors.primary,
+                            child: ListView.separated(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                                vertical: AppSpacing.sm,
+                              ),
+                              itemCount: _notifications.length,
+                              separatorBuilder: (_, _2) =>
+                                  const SizedBox(
+                                      height: AppSpacing.sm),
+                              itemBuilder: (context, index) {
+                                final notif =
+                                    _notifications[index];
+                                final isRead =
+                                    notif['is_read'] == true;
+                                final type =
+                                    notif['type'] as String? ?? '';
+
+                                return AnimatedEntrance(
+                                  delay: Duration(
+                                      milliseconds: index * 60),
+                                  child: GlassCard(
+                                    padding: const EdgeInsets.all(
+                                        AppSpacing.lg),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 40,
+                                          height: 40,
+                                          decoration: BoxDecoration(
+                                            color: _getColor(type)
+                                                .withAlpha(25),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            _getIcon(type),
+                                            color:
+                                                _getColor(type),
+                                            size: 20,
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                            width:
+                                                AppSpacing.md),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment
+                                                    .start,
+                                            children: [
+                                              Text(
+                                                notif['title'] ??
+                                                    '',
+                                                style: AppTypography
+                                                    .subtitle1
+                                                    .copyWith(
+                                                  color: AppColors
+                                                      .darkTextPrimary,
+                                                  fontWeight: isRead
+                                                      ? FontWeight
+                                                          .w500
+                                                      : FontWeight
+                                                          .w700,
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                  height: AppSpacing.xs),
+                                              Text(
+                                                notif['body'] ??
+                                                    '',
+                                                maxLines: 2,
+                                                overflow:
+                                                    TextOverflow
+                                                        .ellipsis,
+                                                style: AppTypography
+                                                    .body2
+                                                    .copyWith(
+                                                  color: AppColors
+                                                      .darkTextSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                            width:
+                                                AppSpacing.sm),
+                                        Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment
+                                                  .center,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment
+                                                  .end,
+                                          children: [
+                                            Text(
+                                              _formatDate(
+                                                  notif['created_at'] ??
+                                                      ''),
+                                              style: AppTypography
+                                                  .caption
+                                                  .copyWith(
+                                                color: AppColors
+                                                    .darkTextSecondary,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                            if (!isRead) ...[
+                                              const SizedBox(
+                                                  height: 4),
+                                              Container(
+                                                width: 8,
+                                                height: 8,
+                                                decoration:
+                                                    const BoxDecoration(
+                                                  color: AppColors
+                                                      .primary,
+                                                  shape: BoxShape
+                                                      .circle,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

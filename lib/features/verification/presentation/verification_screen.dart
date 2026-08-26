@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/feedback/app_feedback.dart';
+import '../../../core/logging/app_logger.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/animated_entrance.dart';
+import '../../../core/responsive/responsive.dart';
 import '../data/verification_service.dart';
 
 class VerificationScreen extends StatefulWidget {
@@ -11,9 +22,18 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen> {
   final _verificationService = VerificationService();
+  final _picker = ImagePicker();
   IdentityDocument? _document;
   bool _isLoading = true;
   bool _isSubmitting = false;
+  bool _isUploading = false;
+
+  XFile? _frontImage;
+  XFile? _backImage;
+  XFile? _selfieImage;
+  String? _frontUrl;
+  String? _backUrl;
+  String? _selfieUrl;
 
   final _documentNumberController = TextEditingController();
   String _selectedDocType = 'CEDULA_CIUDADANIA';
@@ -50,34 +70,58 @@ class _VerificationScreenState extends State<VerificationScreen> {
     });
   }
 
+  Future<String?> _uploadIfNeeded(XFile? image, String kind) async {
+    if (image == null) return null;
+    return _verificationService.uploadDocumentImage(image, kind);
+  }
+
+  Future<void> _pick(void Function(XFile) setImage) async {
+    final image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+    if (image != null) setImage(image);
+  }
+
   Future<void> _submitDocument() async {
     if (_documentNumberController.text.trim().isEmpty) return;
 
     setState(() => _isSubmitting = true);
 
     try {
+      setState(() => _isUploading = true);
+      try {
+        _frontUrl ??= await _uploadIfNeeded(_frontImage, 'front');
+        _backUrl ??= await _uploadIfNeeded(_backImage, 'back');
+        _selfieUrl ??= await _uploadIfNeeded(_selfieImage, 'selfie');
+      } finally {
+        if (mounted) setState(() => _isUploading = false);
+      }
+
       await _verificationService.submitDocument(
         documentType: _selectedDocType,
         documentNumber: _documentNumberController.text.trim(),
+        documentFrontUrl: _frontUrl,
+        documentBackUrl: _backUrl,
+        selfieUrl: _selfieUrl,
       );
 
       await _loadDocument();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Documento enviado para revisión'),
-            backgroundColor: Colors.green,
-          ),
+        AppFeedback.showSuccess(
+          context,
+          'Documento enviado para revisión',
         );
       }
     } catch (e) {
+      AppLogger.error('Error enviando documento de verificación', e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppFeedback.showError(
+          context,
+          e is AuthException || e is PostgrestException
+              ? e.toString()
+              : 'No se pudo enviar el documento',
         );
       }
     } finally {
@@ -88,13 +132,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Color _getStatusColor() {
     switch (_document?.status) {
       case 'VERIFIED':
-        return Colors.green;
+        return AppColors.success;
       case 'PENDING':
-        return Colors.orange;
+        return AppColors.warning;
       case 'REJECTED':
-        return Colors.red;
+        return AppColors.error;
       default:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -115,121 +159,325 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        backgroundColor: AppColors.darkBackground,
+        body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Verificación de Identidad')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.verified_user, size: 24),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Estado de verificación',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'PlayerGO',
+                    style: AppTypography.h2.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
                     ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor().withAlpha(25),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        _getStatusText(),
-                        style: TextStyle(
-                          color: _getStatusColor(),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    if (_document?.rejectionReason != null) ...[
-                      const SizedBox(height: 8),
-                      Text(
-                        'Motivo: ${_document!.rejectionReason}',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ],
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+                    onPressed: () => Navigator.pop(context),
+                    tooltip: 'Volver',
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              height: 2,
+              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppColors.primary,
+                    AppColors.success,
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Datos del documento',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              value: _selectedDocType,
-              decoration: const InputDecoration(
-                labelText: 'Tipo de documento',
-                border: OutlineInputBorder(),
-              ),
-              items: _docTypes.entries
-                  .map((e) => DropdownMenuItem(
-                        value: e.key,
-                        child: Text(e.value),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) setState(() => _selectedDocType = value);
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _documentNumberController,
-              decoration: const InputDecoration(
-                labelText: 'Número de documento',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Tip: Sube fotos de tu documento en la sección de perfil para completar la verificación.',
-              style: TextStyle(color: Colors.grey, fontSize: 12),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _isSubmitting ? null : _submitDocument,
-                icon: _isSubmitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send),
-                label: Text(_isSubmitting ? 'Enviando...' : 'Enviar para revisión'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF1B5E20),
-                  foregroundColor: Colors.white,
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSpacing.xl),
+                child: ResponsiveContainer(
+                  maxWidth: 600,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      AnimatedEntrance(
+                        delay: Duration.zero,
+                        child: _buildStatusCard(),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 80),
+                        child: Text(
+                          'Datos del documento',
+                          style: AppTypography.subtitle1.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 160),
+                        child: _buildDocumentFields(),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 240),
+                        child: Text(
+                          'Fotos del documento',
+                          style: AppTypography.subtitle1.copyWith(
+                            color: AppColors.darkTextPrimary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 320),
+                        child: _buildPhotoFields(),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 360),
+                        child: Text(
+                          'Sube fotos nítidas de tu documento (frente y reverso) y un selfie para completar la verificación.',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.darkTextSecondary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      AnimatedEntrance(
+                        delay: const Duration(milliseconds: 400),
+                        child: _buildSubmitButton(),
+                      ),
+                      const SizedBox(height: AppSpacing.xxxl),
+                    ],
+                  ),
                 ),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusCard() {
+    final color = _getStatusColor();
+    return GlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.verified_user, size: 24, color: color),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Estado de verificación',
+                style: AppTypography.subtitle1.copyWith(
+                  color: AppColors.darkTextPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: color.withAlpha(25),
+              borderRadius: AppRadius.full,
+            ),
+            child: Text(
+              _getStatusText(),
+              style: AppTypography.subtitle2.copyWith(
+                color: color,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          if (_document?.rejectionReason != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Motivo: ${_document!.rejectionReason}',
+              style: AppTypography.body2.copyWith(color: AppColors.error),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentFields() {
+    return GlassCard(
+      child: Column(
+        children: [
+          DropdownButtonFormField<String>(
+            value: _selectedDocType,
+            dropdownColor: AppColors.darkSurfaceVariant,
+            style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
+            decoration: InputDecoration(
+              labelText: 'Tipo de documento',
+              labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: AppRadius.small,
+                borderSide: const BorderSide(color: AppColors.darkSurfaceVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppRadius.small,
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: AppRadius.small,
+              ),
+            ),
+            items: _docTypes.entries
+                .map((e) => DropdownMenuItem(
+                      value: e.key,
+                      child: Text(e.value),
+                    ))
+                .toList(),
+            onChanged: (value) {
+              if (value != null) setState(() => _selectedDocType = value);
+            },
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            controller: _documentNumberController,
+            style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
+            decoration: InputDecoration(
+              labelText: 'Número de documento',
+              labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: AppRadius.small,
+                borderSide: const BorderSide(color: AppColors.darkSurfaceVariant),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: AppRadius.small,
+                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+              ),
+              border: OutlineInputBorder(
+                borderRadius: AppRadius.small,
+              ),
+            ),
+            keyboardType: TextInputType.number,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotoFields() {
+    return Row(
+      children: [
+        Expanded(
+          child: _PhotoField(
+            label: 'Frente',
+            image: _frontImage,
+            onTap: () => _pick((f) => setState(() => _frontImage = f)),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _PhotoField(
+            label: 'Reverso',
+            image: _backImage,
+            onTap: () => _pick((f) => setState(() => _backImage = f)),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _PhotoField(
+            label: 'Selfie',
+            image: _selfieImage,
+            onTap: () => _pick((f) => setState(() => _selfieImage = f)),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isSubmitting || _isUploading ? null : _submitDocument,
+        icon: _isSubmitting || _isUploading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.darkTextPrimary),
+              )
+            : const Icon(Icons.send, color: AppColors.darkTextPrimary),
+        label: Text(
+          _isSubmitting || _isUploading ? 'Enviando...' : 'Enviar para revisión',
+          style: AppTypography.button.copyWith(color: AppColors.darkTextPrimary),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.darkTextPrimary,
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
+        ),
+      ),
+    );
+  }
+}
+
+class _PhotoField extends StatelessWidget {
+  final String label;
+  final XFile? image;
+  final VoidCallback onTap;
+
+  const _PhotoField({
+    required this.label,
+    this.image,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AspectRatio(
+        aspectRatio: 0.75,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.darkSurfaceVariant),
+            borderRadius: AppRadius.medium,
+            color: AppColors.darkSurfaceVariant.withAlpha(40),
+          ),
+          child: image != null
+              ? ClipRRect(
+                  borderRadius: AppRadius.medium,
+                  child: Image.network(image!.path, fit: BoxFit.cover),
+                )
+              : Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.add_a_photo, size: 28, color: AppColors.darkTextSecondary),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      label,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.darkTextSecondary,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );

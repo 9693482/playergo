@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../data/chat_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -75,53 +79,94 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.otherName),
-        actions: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: const Color(0xFF1B5E20),
-            child: Text(
-              widget.otherName[0].toUpperCase(),
-              style: const TextStyle(color: Colors.white, fontSize: 14),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _messages.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Envía el primer mensaje',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      )
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final msg = _messages[index];
-                          final isMine = msg.senderRole == _getMyRole();
-
-                          return _MessageBubble(
-                            message: msg,
-                            isMine: isMine,
-                            time: _formatTime(msg.createdAt),
-                          );
-                        },
+      backgroundColor: AppColors.darkBackground,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.darkSurface,
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppColors.darkSurfaceVariant,
+                    width: 1,
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Icon(
+                      Icons.arrow_back_ios_new_rounded,
+                      color: AppColors.darkTextPrimary,
+                      size: 22,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.md),
+                  Text(
+                    widget.otherName,
+                    style: AppTypography.subtitle1.copyWith(
+                      color: AppColors.darkTextPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppColors.darkSurfaceVariant,
+                    child: Text(
+                      widget.otherName[0].toUpperCase(),
+                      style: AppTypography.subtitle2.copyWith(
+                        color: AppColors.primary,
                       ),
-          ),
-          _MessageInput(
-            controller: _controller,
-            onSend: _sendMessage,
-          ),
-        ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primary,
+                      ),
+                    )
+                  : _messages.isEmpty
+                      ? Center(
+                          child: Text(
+                            'Envía el primer mensaje',
+                            style: AppTypography.body2.copyWith(
+                              color: AppColors.darkTextSecondary,
+                            ),
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: _scrollController,
+                          padding: EdgeInsets.all(AppSpacing.lg),
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final msg = _messages[index];
+                            final isMine =
+                                msg.senderRole == _getMyRole();
+
+                            return _MessageBubble(
+                              message: msg,
+                              isMine: isMine,
+                              time: _formatTime(msg.createdAt),
+                            );
+                          },
+                        ),
+            ),
+            _MessageInput(
+              controller: _controller,
+              onSend: _sendMessage,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -147,20 +192,23 @@ class _MessageBubble extends StatelessWidget {
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        margin: EdgeInsets.only(bottom: AppSpacing.sm),
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.md,
+        ),
         constraints: BoxConstraints(
           maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
         decoration: BoxDecoration(
-          color: isMine
-              ? const Color(0xFF1B5E20)
-              : Colors.grey[200],
+          color: isMine ? AppColors.primary : AppColors.darkSurfaceVariant,
           borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(16),
-            topRight: const Radius.circular(16),
-            bottomLeft: Radius.circular(isMine ? 16 : 4),
-            bottomRight: Radius.circular(isMine ? 4 : 16),
+            topLeft: const Radius.circular(AppRadius.lg),
+            topRight: const Radius.circular(AppRadius.lg),
+            bottomLeft:
+                Radius.circular(isMine ? AppRadius.lg : 4),
+            bottomRight:
+                Radius.circular(isMine ? 4 : AppRadius.lg),
           ),
         ),
         child: Column(
@@ -168,32 +216,36 @@ class _MessageBubble extends StatelessWidget {
           children: [
             Text(
               message.content,
-              style: TextStyle(
-                color: isMine ? Colors.white : Colors.black87,
+              style: AppTypography.body1.copyWith(
+                color: isMine
+                    ? AppColors.textOnPrimary
+                    : AppColors.darkTextPrimary,
                 fontSize: 15,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: AppSpacing.xs),
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   time,
-                  style: TextStyle(
+                  style: AppTypography.caption.copyWith(
                     color: isMine
-                        ? Colors.white.withValues(alpha: 0.7)
-                        : Colors.grey[600],
+                        ? AppColors.textOnPrimary
+                            .withValues(alpha: 0.7)
+                        : AppColors.darkTextSecondary,
                     fontSize: 11,
                   ),
                 ),
                 if (isMine) ...[
-                  const SizedBox(width: 4),
+                  SizedBox(width: AppSpacing.xs),
                   Icon(
                     message.isRead ? Icons.done_all : Icons.done,
                     size: 14,
                     color: message.isRead
-                        ? Colors.lightBlueAccent
-                        : Colors.white.withValues(alpha: 0.7),
+                        ? AppColors.info
+                        : AppColors.textOnPrimary
+                            .withValues(alpha: 0.7),
                   ),
                 ],
               ],
@@ -217,16 +269,18 @@ class _MessageInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
+        color: AppColors.darkSurface,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.darkSurfaceVariant,
+            width: 1,
           ),
-        ],
+        ),
       ),
       child: SafeArea(
         child: Row(
@@ -234,17 +288,23 @@ class _MessageInput extends StatelessWidget {
             Expanded(
               child: TextField(
                 controller: controller,
+                style: AppTypography.body1.copyWith(
+                  color: AppColors.darkTextPrimary,
+                ),
                 decoration: InputDecoration(
                   hintText: 'Escribe un mensaje...',
+                  hintStyle: AppTypography.body1.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: AppRadius.full,
                     borderSide: BorderSide.none,
                   ),
                   filled: true,
-                  fillColor: Colors.grey[100],
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
+                  fillColor: AppColors.darkSurfaceVariant,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.md,
                   ),
                 ),
                 maxLines: null,
@@ -252,11 +312,16 @@ class _MessageInput extends StatelessWidget {
                 onSubmitted: (_) => onSend(),
               ),
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: AppSpacing.sm),
             CircleAvatar(
-              backgroundColor: const Color(0xFF1B5E20),
+              backgroundColor: AppColors.primary,
+              radius: 22,
               child: IconButton(
-                icon: const Icon(Icons.send, color: Colors.white, size: 20),
+                icon: const Icon(
+                  Icons.send,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 onPressed: onSend,
               ),
             ),
