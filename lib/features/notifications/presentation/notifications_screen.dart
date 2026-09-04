@@ -154,7 +154,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                 vertical: AppSpacing.sm,
                               ),
                               itemCount: _notifications.length,
-                              separatorBuilder: (_, _2) =>
+                              separatorBuilder: (_, _) =>
                                   const SizedBox(
                                       height: AppSpacing.sm),
                               itemBuilder: (context, index) {

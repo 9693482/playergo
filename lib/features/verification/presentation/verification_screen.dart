@@ -326,7 +326,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       child: Column(
         children: [
           DropdownButtonFormField<String>(
-            value: _selectedDocType,
+            initialValue: _selectedDocType,
             dropdownColor: AppColors.darkSurfaceVariant,
             style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
             decoration: InputDecoration(

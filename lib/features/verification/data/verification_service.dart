@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class IdentityDocument {
@@ -88,9 +89,9 @@ class VerificationService {
           .from('identity_documents')
           .update({
             'document_number': documentNumber,
-            if (documentFrontUrl != null) 'document_front_url': documentFrontUrl,
-            if (documentBackUrl != null) 'document_back_url': documentBackUrl,
-            if (selfieUrl != null) 'selfie_url': selfieUrl,
+            'document_front_url': ?documentFrontUrl,
+            'document_back_url': ?documentBackUrl,
+            'selfie_url': ?selfieUrl,
             'status': 'PENDING',
             'rejection_reason': null,
           })
@@ -122,6 +123,29 @@ class VerificationService {
         .eq('id', userId);
 
     return IdentityDocument.fromMap(data);
+  }
+
+  /// Sube una foto del documento (o selfie) al bucket de Storage y
+  /// devuelve la URL pública. [kind] ∈ {front, back, selfie}.
+  Future<String> uploadDocumentImage(XFile image, String kind) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('No autenticado');
+
+    final bytes = await image.readAsBytes();
+    final ext = image.name.split('.').last.toLowerCase();
+    final name = '${kind}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final path = '${user.id}/$name';
+
+    await _client.storage.from('identity-documents').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: image.mimeType,
+            upsert: true,
+          ),
+        );
+
+    return _client.storage.from('identity-documents').getPublicUrl(path);
   }
 
   Future<List<IdentityDocument>> getPendingDocuments() async {

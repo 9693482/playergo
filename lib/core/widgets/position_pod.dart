@@ -26,29 +26,8 @@ class PositionPod extends StatefulWidget {
   State<PositionPod> createState() => _PositionPodState();
 }
 
-class _PositionPodState extends State<PositionPod>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _scaleAnim;
+class _PositionPodState extends State<PositionPod> {
   bool _pressing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    );
-    _scaleAnim = Tween<double>(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,16 +35,13 @@ class _PositionPodState extends State<PositionPod>
 
     return GestureDetector(
       onTapDown: (_) {
-        _controller.forward();
         setState(() => _pressing = true);
       },
       onTapUp: (_) {
-        _controller.reverse();
         setState(() => _pressing = false);
         widget.onTap();
       },
       onTapCancel: () {
-        _controller.reverse();
         setState(() => _pressing = false);
       },
       child: AnimatedScale(
