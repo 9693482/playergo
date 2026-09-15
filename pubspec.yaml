@@ -53,6 +53,10 @@ dependencies:
   # Notifications
   firebase_core: ^3.13.1
   firebase_messaging: ^15.2.9
+  firebase_crashlytics: ^4.3.4
+
+  # Connectivity / offline
+  connectivity_plus: ^6.1.0
 
   # Stripe
   flutter_stripe: ^11.4.1
@@ -77,6 +81,25 @@ dev_dependencies:
   # Lint
   lint: ^2.3.0
 
+  # App icon & native splash
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.3
+
+flutter_native_splash:
+  color: "#0D0D0D"
+  android: true
+  ios: true
+  web: true
+
+flutter_launcher_icons:
+  image_path: "assets/icons/app_icon.png"
+  android: true
+  ios: true
+  web:
+    generate: true
+  windows:
+    generate: true
+
 flutter:
   generate: true
   uses-material-design: true
@@ -96,3 +119,6 @@ flutter:
 
   assets:
     - .env
+    - .env.dev
+    - .env.staging
+    - .env.prod

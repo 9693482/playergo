@@ -91,7 +91,15 @@ class AppTheme {
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
-          borderSide: const BorderSide(color: AppColors.error),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        ),
+        errorStyle: AppTypography.caption.copyWith(
+          color: AppColors.error,
+          fontWeight: FontWeight.w500,
         ),
         labelStyle: AppTypography.body2,
         hintStyle: AppTypography.body2.copyWith(color: AppColors.textSecondary),
@@ -182,6 +190,18 @@ class AppTheme {
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.medium,
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.medium,
+          borderSide: const BorderSide(color: AppColors.error, width: 2),
+        ),
+        errorStyle: AppTypography.caption.copyWith(
+          color: AppColors.error,
+          fontWeight: FontWeight.w500,
         ),
         labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
         hintStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),

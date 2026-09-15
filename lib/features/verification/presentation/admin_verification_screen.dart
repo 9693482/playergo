@@ -1,9 +1,11 @@
 ﻿import 'package:flutter/material.dart';
 
+import '../../../core/responsive/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../../core/widgets/empty_state.dart';
 import '../data/verification_service.dart';
 
 class AdminVerificationScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   final _verificationService = VerificationService();
   List<IdentityDocument> _documents = [];
   bool _isLoading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -25,11 +28,22 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
   }
 
   Future<void> _loadDocuments() async {
-    final docs = await _verificationService.getPendingDocuments();
     setState(() {
-      _documents = docs;
-      _isLoading = false;
+      _isLoading = true;
+      _error = null;
     });
+    try {
+      final docs = await _verificationService.getPendingDocuments();
+      setState(() {
+        _documents = docs;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _approveDocument(IdentityDocument doc) async {
@@ -126,6 +140,58 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
       );
     }
 
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.darkBackground,
+        appBar: AppBar(
+          backgroundColor: AppColors.darkSurface,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Verificaciones pendientes',
+            style: AppTypography.h2.copyWith(color: AppColors.darkTextPrimary),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: AppColors.error),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Error al cargar documentos',
+                  style: AppTypography.subtitle1.copyWith(
+                    color: AppColors.darkTextPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _error!,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.body2.copyWith(
+                    color: AppColors.darkTextSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ElevatedButton(
+                  onPressed: _loadDocuments,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textOnPrimary,
+                  ),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
@@ -141,35 +207,24 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _documents.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.check_circle,
-                    size: 64,
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'No hay documentos pendientes',
-                    style: AppTypography.subtitle1.copyWith(
-                      color: AppColors.darkTextSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: _documents.length,
-              itemBuilder: (context, index) {
-                final doc = _documents[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: AppColors.darkSurface,                    borderRadius: AppRadius.medium,
+      body: ResponsiveContainer(
+        maxWidth: 960,
+        child: _documents.isEmpty
+            ? EmptyState(
+                illustration: Icons.verified_user_outlined,
+                title: 'Todo verificado',
+                message: 'No hay documentos pendientes por revisar.',
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: _documents.length,
+                itemBuilder: (context, index) {
+                  final doc = _documents[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkSurface,
+                      borderRadius: AppRadius.medium,
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(AppSpacing.lg),
@@ -251,6 +306,7 @@ class _AdminVerificationScreenState extends State<AdminVerificationScreen> {
                 );
               },
             ),
+      ),
     );
   }
 

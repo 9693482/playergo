@@ -29,15 +29,8 @@ class AuthService {
       },
     );
 
-    if (response.user != null) {
-      await _client.from('profiles').upsert({
-        'id': response.user!.id,
-        'email': cleanEmail,
-        'full_name': cleanName,
-        'role': role,
-      });
-    }
-
+    // El perfil se crea automáticamente con el trigger handle_new_user
+    // (handle_new_user) en auth.users, incluso sin sesión (correo sin confirmar).
     return response;
   }
 
