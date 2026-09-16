@@ -83,14 +83,17 @@ class _PlayerHomeScreenState extends ConsumerState<PlayerHomeScreen> {
               ],
             ),
           Expanded(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                const _PlayerDashboard(),
-                const SearchScreen(),
-                const ChatListScreen(),
-                const PlayerProfileScreen(),
-              ],
+            child: Container(
+              color: AppColors.darkBackground,
+              child: IndexedStack(
+                index: _currentIndex,
+                children: [
+                  const _PlayerDashboard(),
+                  const SearchScreen(),
+                  const ChatListScreen(),
+                  const PlayerProfileScreen(),
+                ],
+              ),
             ),
           ),
         ],
