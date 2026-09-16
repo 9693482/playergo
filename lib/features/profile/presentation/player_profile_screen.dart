@@ -15,11 +15,78 @@ import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
 
-class PlayerProfileScreen extends ConsumerWidget {
+class PlayerProfileScreen extends ConsumerStatefulWidget {
   const PlayerProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PlayerProfileScreen> createState() => _PlayerProfileScreenState();
+}
+
+class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  bool _isSaving = false;
+  bool _initialized = false;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  void _initControllers(dynamic profile) {
+    if (_initialized || profile == null) return;
+    _nameController.text = profile.fullName ?? '';
+    _phoneController.text = profile.phone ?? '';
+    _initialized = true;
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final profile = ref.read(currentProfileProvider).valueOrNull;
+    if (profile == null) return;
+
+    setState(() => _isSaving = true);
+
+    try {
+      final updated = profile.copyWith(
+        fullName: _nameController.text.trim().isNotEmpty
+            ? _nameController.text.trim()
+            : null,
+        phone: _phoneController.text.trim().isNotEmpty
+            ? _phoneController.text.trim()
+            : null,
+      );
+      await AuthService().updateProfile(updated);
+      ref.invalidate(currentProfileProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Perfil actualizado'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final profile = ref.watch(currentProfileProvider);
     final player = ref.watch(currentPlayerProvider);
     final reduceMotion = MediaQuery.of(context).disableAnimations;
@@ -27,93 +94,83 @@ class PlayerProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.darkSurface,
-        title: Text(
-          'Mi Perfil',
-          style: AppTypography.h2.copyWith(
-            color: AppColors.darkTextPrimary,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: AppColors.primary),
-            onPressed: () => _showEditDialog(context, ref),
-            tooltip: 'Editar perfil',
-          ),
-        ],
-      ),
       body: SafeArea(
         child: profile.when(
           data: (p) {
             if (p == null) {
-              return const Center(child: Text('Perfil no encontrado'));
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.person_off, size: 64, color: AppColors.darkTextSecondary),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Perfil no encontrado',
+                        style: AppTypography.h3.copyWith(color: AppColors.darkTextPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Cierra sesión y vuelve a registrarte.',
+                        style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
+
+            _initControllers(p);
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: ResponsiveContainer(
                 maxWidth: 600,
-                child: Column(
-                  children: [
-                    AnimatedEntrance(
-                      delay: Duration.zero,
-                      animate: animate,
-                      child: _buildHeader(p, player),
-                    ),
-                    AnimatedEntrance(
-                      delay: const Duration(milliseconds: 40),
-                      animate: animate,
-                      child: Container(
-                        height: 2,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppColors.primary.withAlpha(0),
-                              AppColors.primary,
-                              AppColors.primary.withAlpha(0),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    AnimatedEntrance(
-                      delay: const Duration(milliseconds: 80),
-                      animate: animate,
-                      child: _buildInfoSection(context, ref, p, player),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (p.id.isNotEmpty)
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: AppSpacing.lg),
                       AnimatedEntrance(
-                        delay: const Duration(milliseconds: 160),
                         animate: animate,
+                        delay: Duration.zero,
+                        child: _buildAvatar(p),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      AnimatedEntrance(
+                        animate: animate,
+                        delay: const Duration(milliseconds: 60),
+                        child: _buildFormSection(p),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      AnimatedEntrance(
+                        animate: animate,
+                        delay: const Duration(milliseconds: 120),
+                        child: _buildPlayerStats(player),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      AnimatedEntrance(
+                        animate: animate,
+                        delay: const Duration(milliseconds: 180),
+                        child: _buildRatingsSection(p),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      AnimatedEntrance(
+                        animate: animate,
+                        delay: const Duration(milliseconds: 240),
                         child: _buildAccountSection(context),
                       ),
-                    const SizedBox(height: AppSpacing.lg),
-                    if (p.id.isNotEmpty)
+                      const SizedBox(height: AppSpacing.lg),
                       AnimatedEntrance(
-                        delay: const Duration(milliseconds: 240),
                         animate: animate,
-                        child: _buildLogoutSection(context, ref),
+                        delay: const Duration(milliseconds: 300),
+                        child: _buildLogoutSection(context),
                       ),
-                    if (p.id.isNotEmpty)
-                      AnimatedEntrance(
-                        delay: const Duration(milliseconds: 320),
-                        animate: animate,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.lg,
-                          ),
-                          child: _buildRatingsSection(p),
-                        ),
-                      ),
-                    const SizedBox(height: AppSpacing.xxxl),
-                  ],
+                      const SizedBox(height: AppSpacing.xxxl),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -121,13 +178,43 @@ class PlayerProfileScreen extends ConsumerWidget {
           loading: () => const Center(
             child: CircularProgressIndicator(color: AppColors.primary),
           ),
-          error: (e, _) => Center(child: Text('Error: $e')),
+          error: (e, _) => Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xxl),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    'Error al cargar perfil',
+                    style: AppTypography.subtitle1.copyWith(color: AppColors.darkTextPrimary),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    '$e',
+                    style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  ElevatedButton(
+                    onPressed: () => ref.invalidate(currentProfileProvider),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                    ),
+                    child: const Text('Reintentar'),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(dynamic p, AsyncValue<dynamic> player) {
+  Widget _buildAvatar(dynamic p) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
@@ -142,92 +229,140 @@ class PlayerProfileScreen extends ConsumerWidget {
           CircleAvatar(
             radius: 48,
             backgroundColor: AppColors.primary,
-            backgroundImage: p.photoUrl != null
-                ? NetworkImage(p.photoUrl!)
-                : null,
+            backgroundImage: p.photoUrl != null ? NetworkImage(p.photoUrl!) : null,
             child: p.photoUrl == null
                 ? Text(
                     (p.fullName ?? 'J')[0].toUpperCase(),
-                    style: AppTypography.h1.copyWith(
-                      color: AppColors.textOnPrimary,
-                    ),
+                    style: AppTypography.h1.copyWith(color: AppColors.textOnPrimary),
                   )
                 : null,
           ),
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            p.fullName ?? 'Sin nombre',
-            style: AppTypography.h2.copyWith(
-              color: AppColors.darkTextPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: p.role == UserRole.player
-                  ? AppColors.primary.withAlpha(30)
-                  : AppColors.warning.withAlpha(30),
-              borderRadius: AppRadius.full,
-            ),
-            child: Text(
-              p.role == UserRole.player ? 'JUGADOR' : 'EQUIPO',
-              style: AppTypography.caption.copyWith(
-                color: p.role == UserRole.player
-                    ? AppColors.primary
-                    : AppColors.warning,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           _buildVerificationBadge(p),
         ],
       ),
     );
   }
 
-  Widget _buildVerificationBadge(dynamic p) {
-    final color = _getVerificationColor(p.verificationStatus.name);
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: color.withAlpha(30),
-        borderRadius: AppRadius.full,
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _getVerificationIcon(p.verificationStatus.name),
-            size: 14,
-            color: color,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            _getVerificationText(p.verificationStatus.name),
-            style: AppTypography.caption.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
+  Widget _buildFormSection(dynamic p) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: GlassCard(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.edit_outlined, size: 20, color: AppColors.primary),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Información personal',
+                  style: AppTypography.subtitle1.copyWith(
+                    color: AppColors.darkTextPrimary,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: AppSpacing.lg),
+            _buildField(
+              controller: _nameController,
+              label: 'Nombre completo',
+              icon: Icons.person_outline,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'Requerido' : null,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _buildField(
+              controller: _phoneController,
+              label: 'Teléfono',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            _InfoRow(
+              icon: Icons.email_outlined,
+              label: 'Correo',
+              value: p.email ?? '-',
+            ),
+            const _Divider(),
+            _InfoRow(
+              icon: Icons.badge_outlined,
+              label: 'Rol',
+              value: p.role == UserRole.player ? 'JUGADOR' : 'EQUIPO',
+              valueColor: p.role == UserRole.player ? AppColors.primary : AppColors.warning,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _isSaving ? null : _saveProfile,
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.textOnPrimary,
+                        ),
+                      )
+                    : const Icon(Icons.save_outlined, size: 18),
+                label: Text(_isSaving ? 'Guardando...' : 'Guardar cambios'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textOnPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: AppRadius.medium,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoSection(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic p,
-    AsyncValue<dynamic> player,
-  ) {
+  Widget _buildField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      validator: validator,
+      style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: AppColors.darkTextSecondary, size: 20),
+        labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+        filled: true,
+        fillColor: AppColors.darkSurfaceVariant.withAlpha(80),
+        border: OutlineInputBorder(
+          borderRadius: AppRadius.small,
+          borderSide: const BorderSide(color: AppColors.darkSurfaceVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: AppRadius.small,
+          borderSide: const BorderSide(color: AppColors.darkSurfaceVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: AppRadius.small,
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: AppRadius.small,
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      ),
+    );
+  }
+
+  Widget _buildPlayerStats(AsyncValue<dynamic> player) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: player.when(
@@ -237,32 +372,17 @@ class PlayerProfileScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.xxl),
               child: Column(
                 children: [
-                  const Icon(
-                    Icons.sports_soccer,
-                    size: 48,
-                    color: AppColors.darkTextSecondary,
-                  ),
+                  const Icon(Icons.sports_soccer, size: 40, color: AppColors.darkTextSecondary),
                   const SizedBox(height: AppSpacing.md),
                   Text(
-                    'Aun no tienes perfil de jugador',
-                    style: AppTypography.body1.copyWith(
-                      color: AppColors.darkTextSecondary,
-                    ),
+                    'Sin perfil de jugador',
+                    style: AppTypography.body1.copyWith(color: AppColors.darkTextSecondary),
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  ElevatedButton(
-                    onPressed: () => _showEditDialog(context, ref),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.textOnPrimary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: AppRadius.medium,
-                      ),
-                    ),
-                    child: Text(
-                      'Completar perfil',
-                      style: AppTypography.button,
-                    ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'Los datos de juego se completarán automáticamente.',
+                    style: AppTypography.caption.copyWith(color: AppColors.darkTextSecondary),
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),
@@ -272,22 +392,24 @@ class PlayerProfileScreen extends ConsumerWidget {
           return GlassCard(
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _InfoRow(
-                  icon: Icons.email_outlined,
-                  label: 'Correo',
-                  value: p.email ?? '-',
+                Row(
+                  children: [
+                    const Icon(Icons.sports_soccer_outlined, size: 20, color: AppColors.primary),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'Datos de juego',
+                      style: AppTypography.subtitle1.copyWith(
+                        color: AppColors.darkTextPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const _Divider(),
-                _InfoRow(
-                  icon: Icons.phone_outlined,
-                  label: 'Telefono',
-                  value: p.phone ?? '-',
-                ),
-                const _Divider(),
+                const SizedBox(height: AppSpacing.md),
                 _InfoRow(
                   icon: Icons.star_outline,
-                  label: 'Calificacion',
+                  label: 'Calificación',
                   value: pl.rating.toStringAsFixed(1),
                   valueColor: AppColors.warning,
                 ),
@@ -311,30 +433,79 @@ class PlayerProfileScreen extends ConsumerWidget {
                 _InfoRow(
                   icon: Icons.work_outline,
                   label: 'Experiencia',
-                  value: '${pl.experienceYears} anios',
+                  value: '${pl.experienceYears} años',
                 ),
                 const _Divider(),
                 _InfoRow(
                   icon: Icons.circle,
                   label: 'Disponible',
-                  value: pl.availabilityStatus ? 'Si' : 'No',
-                  valueColor: pl.availabilityStatus
-                      ? AppColors.success
-                      : AppColors.error,
+                  value: pl.availabilityStatus ? 'Sí' : 'No',
+                  valueColor: pl.availabilityStatus ? AppColors.success : AppColors.error,
                 ),
               ],
             ),
           );
         },
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+        loading: () => const SizedBox(
+          height: 80,
+          child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
         ),
-        error: (e, _) => Center(child: Text('Error: $e')),
+        error: (e, _) => GlassCard(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Text(
+            'Error cargando datos: $e',
+            style: AppTypography.body2.copyWith(color: AppColors.error),
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildLogoutSection(BuildContext context, WidgetRef ref) {
+  Widget _buildRatingsSection(dynamic p) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: GlassCard(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Calificaciones',
+              style: AppTypography.subtitle1.copyWith(
+                color: AppColors.darkTextPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            RatingSummaryWidget(userId: p.id),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: GlassCard(
+        padding: EdgeInsets.zero,
+        child: ListTile(
+          leading: const Icon(Icons.account_circle_outlined, color: AppColors.primary),
+          title: Text(
+            'Cuenta y privacidad',
+            style: AppTypography.subtitle2.copyWith(color: AppColors.darkTextPrimary),
+          ),
+          subtitle: Text(
+            'Verificación, legales y eliminar cuenta',
+            style: AppTypography.caption.copyWith(color: AppColors.darkTextSecondary),
+          ),
+          trailing: const Icon(Icons.chevron_right, color: AppColors.darkTextSecondary),
+          onTap: () => context.push('/account'),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLogoutSection(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: GlassCard(
@@ -355,218 +526,66 @@ class PlayerProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRatingsSection(dynamic p) {
-    return GlassCard(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Calificaciones',
-            style: AppTypography.subtitle1.copyWith(
-              color: AppColors.darkTextPrimary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          RatingSummaryWidget(userId: p.id),
-        ],
+  Widget _buildVerificationBadge(dynamic p) {
+    final color = _getVerificationColor(p.verificationStatus.name);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: color.withAlpha(30),
+        borderRadius: AppRadius.full,
       ),
-    );
-  }
-
-  Widget _buildAccountSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-      child: GlassCard(
-        padding: EdgeInsets.zero,
-        child: ListTile(
-          leading: const Icon(
-            Icons.account_circle_outlined,
-            color: AppColors.primary,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(_getVerificationIcon(p.verificationStatus.name), size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            _getVerificationText(p.verificationStatus.name),
+            style: AppTypography.caption.copyWith(color: color, fontWeight: FontWeight.w600),
           ),
-          title: Text(
-            'Cuenta y privacidad',
-            style: AppTypography.subtitle2.copyWith(
-              color: AppColors.darkTextPrimary,
-            ),
-          ),
-          subtitle: Text(
-            'Verificación, legales y eliminar cuenta',
-            style: AppTypography.caption.copyWith(
-              color: AppColors.darkTextSecondary,
-            ),
-          ),
-          trailing: const Icon(
-            Icons.chevron_right,
-            color: AppColors.darkTextSecondary,
-          ),
-          onTap: () => context.push('/account'),
-        ),
+        ],
       ),
     );
   }
 
   Color _getVerificationColor(String? status) {
     switch (status) {
-      case 'VERIFIED':
-        return AppColors.success;
-      case 'PENDING':
-        return AppColors.warning;
-      case 'REJECTED':
-        return AppColors.error;
-      case 'SUSPENDED':
-        return AppColors.darkTextSecondary;
-      default:
-        return AppColors.darkTextSecondary;
+      case 'VERIFIED': return AppColors.success;
+      case 'PENDING': return AppColors.warning;
+      case 'REJECTED': return AppColors.error;
+      case 'SUSPENDED': return AppColors.darkTextSecondary;
+      default: return AppColors.darkTextSecondary;
     }
   }
 
   IconData _getVerificationIcon(String? status) {
     switch (status) {
-      case 'VERIFIED':
-        return Icons.verified;
-      case 'PENDING':
-        return Icons.hourglass_top;
-      case 'REJECTED':
-        return Icons.cancel;
-      case 'SUSPENDED':
-        return Icons.block;
-      default:
-        return Icons.help_outline;
+      case 'VERIFIED': return Icons.verified;
+      case 'PENDING': return Icons.hourglass_top;
+      case 'REJECTED': return Icons.cancel;
+      case 'SUSPENDED': return Icons.block;
+      default: return Icons.help_outline;
     }
   }
 
   String _getVerificationText(String? status) {
     switch (status) {
-      case 'VERIFIED':
-        return 'Verificado';
-      case 'PENDING':
-        return 'En revision';
-      case 'REJECTED':
-        return 'Rechazado';
-      case 'SUSPENDED':
-        return 'Suspendido';
-      default:
-        return 'Sin verificar';
+      case 'VERIFIED': return 'Verificado';
+      case 'PENDING': return 'En revisión';
+      case 'REJECTED': return 'Rechazado';
+      case 'SUSPENDED': return 'Suspendido';
+      default: return 'Sin verificar';
     }
-  }
-
-  void _showEditDialog(BuildContext context, WidgetRef ref) {
-    final profile = ref.read(currentProfileProvider).valueOrNull;
-    if (profile == null) return;
-
-    final nameController = TextEditingController(text: profile.fullName ?? '');
-    final phoneController = TextEditingController(text: profile.phone ?? '');
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.darkSurface,
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
-        title: Text(
-          'Editar perfil',
-          style: AppTypography.subtitle1.copyWith(
-            color: AppColors.darkTextPrimary,
-          ),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
-              decoration: InputDecoration(
-                labelText: 'Nombre',
-                labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
-                enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.darkSurfaceVariant),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            TextField(
-              controller: phoneController,
-              style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
-              keyboardType: TextInputType.phone,
-              decoration: InputDecoration(
-                labelText: 'Teléfono',
-                labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
-                enabledBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.darkSurfaceVariant),
-                ),
-                focusedBorder: const OutlineInputBorder(
-                  borderSide: BorderSide(color: AppColors.primary),
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Cancelar',
-              style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final updated = profile.copyWith(
-                fullName: nameController.text.isNotEmpty ? nameController.text : null,
-                phone: phoneController.text.isNotEmpty ? phoneController.text : null,
-              );
-              try {
-                await AuthService().updateProfile(updated);
-                ref.invalidate(currentProfileProvider);
-                if (ctx.mounted) Navigator.pop(ctx);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Perfil actualizado'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.textOnPrimary,
-            ),
-            child: Text(
-              'Guardar',
-              style: AppTypography.button,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
 class _Divider extends StatelessWidget {
   const _Divider();
-
   @override
   Widget build(BuildContext context) {
     return const Padding(
       padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Divider(
-        color: AppColors.darkSurfaceVariant,
-        height: 1,
-      ),
+      child: Divider(color: AppColors.darkSurfaceVariant, height: 1),
     );
   }
 }
@@ -595,9 +614,7 @@ class _InfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTypography.body2.copyWith(
-                color: AppColors.darkTextSecondary,
-              ),
+              style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
             ),
           ),
           Text(
