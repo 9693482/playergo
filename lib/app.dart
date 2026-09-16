@@ -19,9 +19,8 @@ class PlayerGoApp extends ConsumerWidget {
       routerConfig: router,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
-      theme: AppTheme.light,
+      theme: AppTheme.dark,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.dark,
       builder: (context, child) => ConnectivityBanner(
         child: child ?? const SizedBox.shrink(),
       ),
