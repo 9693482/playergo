@@ -23,6 +23,7 @@ import '../../reservations/presentation/requests_screen.dart';
 import '../../reservations/presentation/reservations_screen.dart';
 import '../../search/presentation/search_screen.dart';
 import '../../availability/presentation/availability_screen.dart';
+import '../../checkin/presentation/player_qr_screen.dart';
 
 class PlayerHomeScreen extends ConsumerStatefulWidget {
   const PlayerHomeScreen({super.key});
@@ -357,7 +358,10 @@ class _PlayerDashboard extends ConsumerWidget {
                 icon: Icons.qr_code_scanner,
                 label: 'Mi QR',
                 color: AppColors.warning,
-                onTap: () {},
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PlayerQRScreen()),
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.md),

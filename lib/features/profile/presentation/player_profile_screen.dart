@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/widgets/animated_entrance.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../auth/data/auth_service.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
@@ -26,6 +27,26 @@ class PlayerProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.darkBackground,
+      appBar: AppBar(
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Mi Perfil',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit, color: AppColors.primary),
+            onPressed: () => _showEditDialog(context, ref),
+            tooltip: 'Editar perfil',
+          ),
+        ],
+      ),
       body: SafeArea(
         child: profile.when(
           data: (p) {
@@ -427,6 +448,110 @@ class PlayerProfileScreen extends ConsumerWidget {
       default:
         return 'Sin verificar';
     }
+  }
+
+  void _showEditDialog(BuildContext context, WidgetRef ref) {
+    final profile = ref.read(currentProfileProvider).valueOrNull;
+    if (profile == null) return;
+
+    final nameController = TextEditingController(text: profile.fullName ?? '');
+    final phoneController = TextEditingController(text: profile.phone ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkSurface,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.medium),
+        title: Text(
+          'Editar perfil',
+          style: AppTypography.subtitle1.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
+              decoration: InputDecoration(
+                labelText: 'Nombre',
+                labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.darkSurfaceVariant),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: phoneController,
+              style: AppTypography.body1.copyWith(color: AppColors.darkTextPrimary),
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                labelText: 'Teléfono',
+                labelStyle: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                enabledBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.darkSurfaceVariant),
+                ),
+                focusedBorder: const OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Cancelar',
+              style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final updated = profile.copyWith(
+                fullName: nameController.text.isNotEmpty ? nameController.text : null,
+                phone: phoneController.text.isNotEmpty ? phoneController.text : null,
+              );
+              try {
+                await AuthService().updateProfile(updated);
+                ref.invalidate(currentProfileProvider);
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Perfil actualizado'),
+                      backgroundColor: AppColors.success,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: AppColors.error,
+                    ),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.textOnPrimary,
+            ),
+            child: Text(
+              'Guardar',
+              style: AppTypography.button,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

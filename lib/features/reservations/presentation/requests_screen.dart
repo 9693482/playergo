@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../../shared/models/reservation.dart';
 import '../../../shared/models/enums/enums.dart';
@@ -131,21 +135,42 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
         _reservations.where((r) => r.status != ReservationStatus.pending).toList();
 
     return Scaffold(
+      backgroundColor: AppColors.darkBackground,
       appBar: AppBar(
-        title: const Text('Mis Solicitudes'),
+        backgroundColor: AppColors.darkSurface,
+        title: Text(
+          'Mis Solicitudes',
+          style: AppTypography.h2.copyWith(
+            color: AppColors.darkTextPrimary,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: AppColors.darkTextPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : _reservations.isEmpty
-              ? const Center(
+              ? Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.inbox, size: 64, color: Colors.grey),
-                      SizedBox(height: 16),
+                      const Icon(Icons.inbox_outlined, size: 64, color: AppColors.darkTextSecondary),
+                      const SizedBox(height: AppSpacing.lg),
                       Text(
-                        'No tienes solicitudes aún',
-                        style: TextStyle(color: Colors.grey),
+                        'No tienes solicitudes',
+                        style: AppTypography.subtitle1.copyWith(
+                          color: AppColors.darkTextPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        'Cuando un equipo te invite, aparecerá aquí.',
+                        style: AppTypography.body2.copyWith(
+                          color: AppColors.darkTextSecondary,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -156,14 +181,13 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
                     padding: const EdgeInsets.all(16),
                     children: [
                       if (pendingReservations.isNotEmpty) ...[
-                        const Text(
+                        Text(
                           'Pendientes',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          style: AppTypography.subtitle1.copyWith(
+                            color: AppColors.darkTextPrimary,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         ...pendingReservations.map(
                           (r) => _ReservationCard(
                             reservation: r,
@@ -175,14 +199,13 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
                         const SizedBox(height: 16),
                       ],
                       if (otherReservations.isNotEmpty) ...[
-                        const Text(
+                        Text(
                           'Historial',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                          style: AppTypography.subtitle1.copyWith(
+                            color: AppColors.darkTextPrimary,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.sm),
                         ...otherReservations.map(
                           (r) => _ReservationCard(
                             reservation: r,
@@ -231,17 +254,21 @@ class _ReservationCard extends StatelessWidget {
   Color _getStatusColor() {
     switch (reservation.status) {
       case ReservationStatus.pending:
-        return Colors.orange;
+        return AppColors.warning;
       case ReservationStatus.accepted:
-        return Colors.green;
+        return AppColors.primary;
       case ReservationStatus.rejected:
-        return Colors.red;
+        return AppColors.error;
       case ReservationStatus.completed:
-        return Colors.blue;
+        return AppColors.success;
       case ReservationStatus.cancelled:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
+      case ReservationStatus.paid:
+        return AppColors.info;
+      case ReservationStatus.confirmed:
+        return AppColors.primary;
       default:
-        return Colors.grey;
+        return AppColors.darkTextSecondary;
     }
   }
 
@@ -268,10 +295,14 @@ class _ReservationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: AppRadius.medium,
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -280,63 +311,74 @@ class _ReservationCard extends StatelessWidget {
               children: [
                 Text(
                   DateFormat('dd/MM/yyyy').format(reservation.reservationDate),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                  style: AppTypography.subtitle1.copyWith(
+                    color: AppColors.darkTextPrimary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.xs,
                   ),
                   decoration: BoxDecoration(
-                    color: _getStatusColor().withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _getStatusColor().withAlpha(30),
+                    borderRadius: AppRadius.full,
                   ),
                   child: Text(
                     _getStatusText(),
-                    style: TextStyle(
+                    style: AppTypography.caption.copyWith(
                       color: _getStatusColor(),
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.sm),
             Row(
               children: [
-                const Icon(Icons.access_time, size: 16, color: Colors.grey),
+                const Icon(Icons.access_time, size: 16, color: AppColors.darkTextSecondary),
                 const SizedBox(width: 4),
-                Text('${reservation.startTime} - ${reservation.endTime}'),
-                const SizedBox(width: 16),
-                const Icon(Icons.attach_money, size: 16, color: Colors.grey),
-                Text(CurrencyInfo.format(reservation.totalPrice, CurrencyInfo.fromCountryCode('CO'))),
+                Text(
+                  '${reservation.startTime} - ${reservation.endTime}',
+                  style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                const Icon(Icons.attach_money, size: 16, color: AppColors.darkTextSecondary),
+                Text(
+                  CurrencyInfo.format(reservation.totalPrice, CurrencyInfo.fromCountryCode('CO')),
+                  style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                ),
               ],
             ),
             if (isPending) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: onReject,
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppRadius.medium,
+                        ),
                       ),
                       child: const Text('Rechazar'),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: ElevatedButton(
                       onPressed: onAccept,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1B5E20),
-                        foregroundColor: Colors.white,
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.textOnPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: AppRadius.medium,
+                        ),
                       ),
                       child: const Text('Aceptar'),
                     ),
@@ -346,7 +388,7 @@ class _ReservationCard extends StatelessWidget {
             ],
             if (reservation.status == ReservationStatus.accepted ||
                 reservation.status == ReservationStatus.confirmed) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -354,11 +396,15 @@ class _ReservationCard extends StatelessWidget {
                   icon: const Icon(Icons.qr_code),
                   label: const Text('Mostrar QR de Check-in'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1B5E20),
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppRadius.medium,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -366,14 +412,18 @@ class _ReservationCard extends StatelessWidget {
                   icon: const Icon(Icons.chat),
                   label: const Text('Chat con el equipo'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1B5E20),
+                    foregroundColor: AppColors.info,
+                    side: const BorderSide(color: AppColors.info),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppRadius.medium,
+                    ),
                   ),
                 ),
               ),
             ],
             if (reservation.status == ReservationStatus.cancelled ||
                 reservation.status == ReservationStatus.rejected) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSpacing.md),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
@@ -381,7 +431,11 @@ class _ReservationCard extends StatelessWidget {
                   icon: const Icon(Icons.gavel),
                   label: const Text('Abrir disputa'),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange,
+                    foregroundColor: AppColors.warning,
+                    side: const BorderSide(color: AppColors.warning),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: AppRadius.medium,
+                    ),
                   ),
                 ),
               ),
