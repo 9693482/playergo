@@ -33,13 +33,26 @@ class _AvailabilityScreenState extends ConsumerState<AvailabilityScreen> {
 
   Future<void> _loadAvailability() async {
     final player = ref.read(currentPlayerProvider).valueOrNull;
-    if (player == null) return;
+    if (player == null) {
+      setState(() {
+        _availability = [];
+        _isLoading = false;
+      });
+      return;
+    }
 
-    final data = await _availabilityService.getAvailability(player.id);
-    setState(() {
-      _availability = data;
-      _isLoading = false;
-    });
+    try {
+      final data = await _availabilityService.getAvailability(player.id);
+      setState(() {
+        _availability = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _availability = [];
+        _isLoading = false;
+      });
+    }
   }
 
   Map<String, dynamic>? _getDayAvailability(int dayOfWeek) {

@@ -85,7 +85,7 @@ class PlayerProfileScreen extends ConsumerWidget {
                     AnimatedEntrance(
                       delay: const Duration(milliseconds: 80),
                       animate: animate,
-                      child: _buildInfoSection(context, p, player),
+                      child: _buildInfoSection(context, ref, p, player),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                     if (p.id.isNotEmpty)
@@ -224,6 +224,7 @@ class PlayerProfileScreen extends ConsumerWidget {
 
   Widget _buildInfoSection(
     BuildContext context,
+    WidgetRef ref,
     dynamic p,
     AsyncValue<dynamic> player,
   ) {
@@ -250,7 +251,7 @@ class PlayerProfileScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () => _showEditDialog(context, ref),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
                       foregroundColor: AppColors.textOnPrimary,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -35,16 +36,27 @@ class PlayerQRScreen extends ConsumerWidget {
       body: profile.when(
         data: (p) {
           if (p == null) {
-            return const Center(
-              child: Text(
-                'Perfil no encontrado',
-                style: TextStyle(color: AppColors.darkTextSecondary),
+            return Center(
+              child: GlassCard(
+                padding: const EdgeInsets.all(AppSpacing.xxl),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person_off, size: 48, color: AppColors.darkTextSecondary),
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      'Perfil no encontrado',
+                      style: AppTypography.subtitle1.copyWith(color: AppColors.darkTextPrimary),
+                    ),
+                  ],
+                ),
               ),
             );
           }
 
           final playerId = player.valueOrNull?.id ?? p.id;
-          final qrData = 'playergo://player/$playerId';
+          final playerName = p.fullName ?? 'Jugador';
+          final qrData = 'https://playergo.app/player/$playerId';
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -67,7 +79,7 @@ class PlayerQRScreen extends ConsumerWidget {
                   child: QrImageView(
                     data: qrData,
                     version: QrVersions.auto,
-                    size: 240,
+                    size: 220,
                     backgroundColor: Colors.white,
                   ),
                 ),
@@ -76,8 +88,17 @@ class PlayerQRScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(AppSpacing.lg),
                   child: Column(
                     children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: AppColors.primary,
+                        child: Text(
+                          playerName[0].toUpperCase(),
+                          style: AppTypography.h2.copyWith(color: Colors.white),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.md),
                       Text(
-                        p.fullName ?? 'Jugador',
+                        playerName,
                         style: AppTypography.h3.copyWith(
                           color: AppColors.darkTextPrimary,
                         ),
@@ -89,30 +110,53 @@ class PlayerQRScreen extends ConsumerWidget {
                           color: AppColors.darkTextSecondary,
                         ),
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(AppSpacing.lg),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withAlpha(25),
-                          borderRadius: AppRadius.medium,
-                          border: Border.all(
-                            color: AppColors.primary.withAlpha(80),
-                          ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: qrData));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Link copiado al portapapeles'),
+                          backgroundColor: AppColors.success,
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                'Muestra este código para que el equipo te identifique al llegar al partido.',
-                                style: AppTypography.caption.copyWith(
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ),
-                          ],
+                      );
+                    },
+                    icon: const Icon(Icons.copy, size: 18),
+                    label: const Text('Copiar link'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.textOnPrimary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppRadius.medium,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withAlpha(20),
+                    borderRadius: AppRadius.medium,
+                    border: Border.all(color: AppColors.info.withAlpha(60)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.info_outline, color: AppColors.info, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          'Muestra este QR o comparte el link para que el equipo te identifique.',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.info,
+                          ),
                         ),
                       ),
                     ],

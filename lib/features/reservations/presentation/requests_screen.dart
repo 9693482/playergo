@@ -36,13 +36,26 @@ class _RequestsScreenState extends ConsumerState<RequestsScreen> {
 
   Future<void> _loadReservations() async {
     final player = ref.read(currentPlayerProvider).valueOrNull;
-    if (player == null) return;
+    if (player == null) {
+      setState(() {
+        _reservations = [];
+        _isLoading = false;
+      });
+      return;
+    }
 
-    final data = await _reservationService.getPlayerReservations(player.id);
-    setState(() {
-      _reservations = data;
-      _isLoading = false;
-    });
+    try {
+      final data = await _reservationService.getPlayerReservations(player.id);
+      setState(() {
+        _reservations = data;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _reservations = [];
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _acceptReservation(Reservation reservation) async {
