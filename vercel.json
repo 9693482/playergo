@@ -1,22 +1,12 @@
 {
-  "buildCommand": "flutter build web --release --dart-define=ENV=prod",
-  "outputDirectory": "build/web",
-  "framework": null,
-  "installCommand": "npm install -g flutter-web-unlock && flutter-web-unlock",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
     {
-      "source": "/main.dart.js",
+      "source": "/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/flutter_engine/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     }
   ]

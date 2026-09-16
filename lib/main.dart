@@ -24,10 +24,14 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
 
-  await Supabase.initialize(
-    url: Env.supabaseUrl,
-    publishableKey: Env.supabaseAnonKey,
-  );
+  try {
+    await Supabase.initialize(
+      url: Env.supabaseUrl,
+      publishableKey: Env.supabaseAnonKey,
+    );
+  } catch (e) {
+    AppLogger.warning('Error initializing Supabase', e);
+  }
 
   // Observabilidad: conecta Crashlytics solo si Firebase está configurado.
   if (Env.firebaseProjectId.isNotEmpty) {
