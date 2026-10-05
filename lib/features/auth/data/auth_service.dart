@@ -1,3 +1,4 @@
+import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/validators/validators.dart';
@@ -147,5 +148,32 @@ class AuthService {
         .single();
 
     return Team.fromJson(data);
+  }
+
+  Future<String> uploadProfilePhoto(XFile image) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('No autenticado');
+
+    final bytes = await image.readAsBytes();
+    final ext = image.name.split('.').last.toLowerCase();
+    final name = 'avatar_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final path = '${user.id}/$name';
+
+    await _client.storage.from('profile-photos').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(
+            contentType: image.mimeType ?? 'image/jpeg',
+            upsert: true,
+          ),
+        );
+
+    final url = _client.storage.from('profile-photos').getPublicUrl(path);
+
+    await _client.from('profiles').update({
+      'photo_url': url,
+    }).eq('id', user.id);
+
+    return url;
   }
 }

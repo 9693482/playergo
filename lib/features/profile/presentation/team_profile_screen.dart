@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../../../core/feedback/app_feedback.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -11,11 +13,16 @@ import '../../../core/widgets/glass_card.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../auth/providers/auth_provider.dart';
 
-class TeamProfileScreen extends ConsumerWidget {
+class TeamProfileScreen extends ConsumerStatefulWidget {
   const TeamProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TeamProfileScreen> createState() => _TeamProfileScreenState();
+}
+
+class _TeamProfileScreenState extends ConsumerState<TeamProfileScreen> {
+  @override
+  Widget build(BuildContext context) {
     final profile = ref.watch(currentProfileProvider);
     final team = ref.watch(currentTeamProvider);
 
@@ -143,19 +150,45 @@ class TeamProfileScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 48,
-            backgroundColor: AppColors.primary,
-            backgroundImage:
-                photoUrl != null ? NetworkImage(photoUrl) : null,
-            child: photoUrl == null
-                ? Text(
-                    initial,
-                    style: AppTypography.h1.copyWith(
-                      color: AppColors.textOnPrimary,
+          GestureDetector(
+            onTap: () => _uploadPhoto(),
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 48,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage:
+                      photoUrl != null ? NetworkImage(photoUrl) : null,
+                  child: photoUrl == null
+                      ? Text(
+                          initial,
+                          style: AppTypography.h1.copyWith(
+                            color: AppColors.textOnPrimary,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.darkSurface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.darkBackground, width: 2),
                     ),
-                  )
-                : null,
+                    child: const Icon(Icons.camera_alt, size: 16, color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Toca para cambiar foto',
+            style: AppTypography.caption.copyWith(color: AppColors.darkTextSecondary),
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
@@ -186,6 +219,30 @@ class TeamProfileScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _uploadPhoto() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
+    if (image == null) return;
+
+    try {
+      final authService = ref.read(authServiceProvider);
+      await authService.uploadProfilePhoto(image);
+      ref.invalidate(currentProfileProvider);
+      if (mounted) {
+        AppFeedback.showSuccess(context, 'Foto de perfil actualizada');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppFeedback.showError(context, 'Error al subir foto');
+      }
+    }
   }
 
   Widget _buildInfoSection(BuildContext context, dynamic p, dynamic t) {

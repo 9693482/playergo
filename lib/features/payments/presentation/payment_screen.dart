@@ -38,6 +38,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   double get _totalAmount => widget.amount;
 
   Future<void> _processPayment() async {
+    if (!mounted) return;
     setState(() => _isProcessing = true);
 
     try {
@@ -47,17 +48,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
         currency: 'COP',
       );
 
-      final intent = await _paymentService.createPaymentIntent(
+      final success = await _paymentService.confirmAndProcess(
+        paymentId: payment.id,
         amount: widget.amount,
         currency: 'COP',
+        reservationId: widget.reservationId,
       );
 
-      await _paymentService.processPayment(
-        paymentId: payment.id,
-        stripePaymentIntentId: intent['payment_intent_id'],
-      );
+      if (!success) {
+        if (mounted) {
+          AppFeedback.showError(
+            context,
+            'Pago cancelado o fallido.',
+          );
+        }
+        return;
+      }
 
-      setState(() => _isCompleted = true);
+      if (mounted) setState(() => _isCompleted = true);
 
       if (mounted) {
         AppFeedback.showSuccess(context, 'Pago exitoso');
@@ -71,7 +79,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
       }
     } finally {
-      setState(() => _isProcessing = false);
+      if (mounted) setState(() => _isProcessing = false);
     }
   }
 
@@ -229,7 +237,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               const SizedBox(width: AppSpacing.md),
                               Expanded(
                                 child: Text(
-                                  'En modo demo, el pago se procesa sin tarjeta real. En produccion se integrara Stripe Checkout.',
+                                  _paymentService.stripeConfigured
+                                      ? 'Pago seguro con Stripe. Se abrirá la hoja de pago.'
+                                      : 'Modo demo: el pago se procesa sin tarjeta real. Configure STRIPE_PUBLISHABLE_KEY para pagos reales.',
                                   style: AppTypography.caption.copyWith(
                                     color: AppColors.info,
                                   ),

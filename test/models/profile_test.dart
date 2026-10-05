@@ -96,11 +96,12 @@ void main() {
   });
 
   group('Profile.toJson', () {
-    test('serializes correctly', () {
+    test('serializes editable fields correctly', () {
       final profile = Profile(
         id: 'test-id',
         email: 'test@test.com',
         fullName: 'Test',
+        phone: '3001234567',
         role: UserRole.admin,
         isActive: true,
         createdAt: DateTime(2026),
@@ -108,9 +109,15 @@ void main() {
       );
 
       final json = profile.toJson();
-      expect(json['id'], 'test-id');
-      expect(json['role'], 'admin');
       expect(json['full_name'], 'Test');
+      expect(json['phone'], '3001234567');
+      expect(json['photo_url'], isNull);
+      expect(json['country_id'], isNull);
+      expect(json['region_id'], isNull);
+      expect(json['city_id'], isNull);
+      // toJson only includes editable fields, not id or role
+      expect(json.containsKey('id'), false);
+      expect(json.containsKey('role'), false);
     });
   });
 

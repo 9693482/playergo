@@ -51,17 +51,12 @@ class Profile {
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
-      'email': email,
       'full_name': fullName,
       'phone': phone,
-      'role': role.name,
       'photo_url': photoUrl,
-      'verification_status': verificationStatus.name,
       'country_id': countryId,
       'region_id': regionId,
       'city_id': cityId,
-      'is_active': isActive,
     };
   }
 

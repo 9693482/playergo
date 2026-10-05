@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -24,21 +26,43 @@ class _ChatListScreenState extends State<ChatListScreen> {
   List<Chat> _chats = [];
   final Map<String, String> _names = {};
   bool _isLoading = true;
+  StreamSubscription<List<Chat>>? _chatSub;
 
   @override
   void initState() {
     super.initState();
-    _loadChats();
+    _chatSub = _chatService.watchChats().listen((chats) {
+      if (!mounted) return;
+      _loadNames(chats);
+      setState(() {
+        _chats = chats;
+        _isLoading = false;
+      });
+    });
   }
 
-  Future<void> _loadChats() async {
-    final chats = await _chatService.getChats();
+  @override
+  void dispose() {
+    _chatSub?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadNames(List<Chat> chats) async {
     for (final chat in chats) {
+      if (_names.containsKey(chat.playerId) && _names.containsKey(chat.teamId)) {
+        continue;
+      }
       final playerName = await _chatService.getPlayerName(chat.playerId);
       final teamName = await _chatService.getTeamName(chat.teamId);
       _names[chat.playerId] = playerName ?? 'Jugador';
       _names[chat.teamId] = teamName ?? 'Equipo';
     }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadChats() async {
+    final chats = await _chatService.getChats();
+    await _loadNames(chats);
     setState(() {
       _chats = chats;
       _isLoading = false;

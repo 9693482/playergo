@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/logging/app_logger.dart';
+
 class Dispute {
   final String id;
   final String reservationId;
@@ -63,6 +65,7 @@ class DisputeService {
     required String reason,
     String? description,
   }) async {
+    AppLogger.info('Abriendo disputa: reserva=$reservationId, motivo=$reason');
     await _client.from('disputes').insert({
       'reservation_id': reservationId,
       'opened_by': openedBy,
@@ -103,6 +106,7 @@ class DisputeService {
     required String resolvedBy,
     required String resolution,
   }) async {
+    AppLogger.info('Resolviendo disputa: id=$disputeId');
     await _client.from('disputes').update({
       'status': 'RESOLVED',
       'resolution': resolution,
@@ -112,8 +116,9 @@ class DisputeService {
   }
 
   Future<void> closeDispute(String disputeId) async {
+    AppLogger.info('Cerrando disputa: id=$disputeId');
     await _client.from('disputes').update({
-      'status': 'CLOSED',
+      'status': 'RESOLVED',
     }).eq('id', disputeId);
   }
 }

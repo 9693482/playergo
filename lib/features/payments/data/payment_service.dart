@@ -1,5 +1,8 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/logging/app_logger.dart';
+import 'stripe_service.dart';
+
 class Payment {
   final String id;
   final String reservationId;
@@ -40,14 +43,18 @@ class Payment {
 
 class PaymentService {
   final SupabaseClient _client = Supabase.instance.client;
+  final StripeService _stripeService = StripeService();
 
   static const double platformFeePercentage = 15.0;
+
+  bool get stripeConfigured => _stripeService.isConfigured;
 
   Future<Payment> createPayment({
     required String reservationId,
     required double amount,
     required String currency,
   }) async {
+    AppLogger.info('Creando pago: reserva=$reservationId, monto=$amount $currency');
     final platformFee = amount * (platformFeePercentage / 100);
     final providerAmount = amount - platformFee;
 
@@ -70,29 +77,63 @@ class PaymentService {
   Future<Map<String, dynamic>> createPaymentIntent({
     required double amount,
     required String currency,
+    String? reservationId,
   }) async {
-    final amountInCents = (amount * 100).toInt();
-
-    return {
-      'client_secret': 'demo_secret_${DateTime.now().millisecondsSinceEpoch}',
-      'payment_intent_id': 'pi_demo_${DateTime.now().millisecondsSinceEpoch}',
-      'amount': amountInCents,
-      'currency': currency,
-    };
+    return _stripeService.createPaymentIntent(
+      amount: amount,
+      currency: currency,
+      reservationId: reservationId,
+    );
   }
 
   Future<void> processPayment({
     required String paymentId,
     required String stripePaymentIntentId,
   }) async {
+    AppLogger.info('Procesando pago: id=$paymentId');
     await _client.from('payments').update({
       'stripe_payment_intent_id': stripePaymentIntentId,
-      'status': 'COMPLETED',
+      'status': 'SUCCEEDED',
       'updated_at': DateTime.now().toIso8601String(),
     }).eq('id', paymentId);
   }
 
+  Future<bool> confirmAndProcess({
+    required String paymentId,
+    required double amount,
+    required String currency,
+    String? reservationId,
+  }) async {
+    final intent = await createPaymentIntent(
+      amount: amount,
+      currency: currency,
+      reservationId: reservationId,
+    );
+
+    final clientSecret = intent['client_secret'] as String;
+    final intentId = (intent['id'] ?? intent['payment_intent_id']) as String;
+
+    final confirmed = await _stripeService.confirmPayment(
+      clientSecret: clientSecret,
+      amount: amount,
+      currency: currency,
+      reservationId: reservationId,
+    );
+
+    if (confirmed) {
+      await processPayment(
+        paymentId: paymentId,
+        stripePaymentIntentId: intentId,
+      );
+      return true;
+    }
+
+    await failPayment(paymentId);
+    return false;
+  }
+
   Future<void> failPayment(String paymentId) async {
+    AppLogger.warning('Marcando pago como fallido: id=$paymentId');
     await _client.from('payments').update({
       'status': 'FAILED',
       'updated_at': DateTime.now().toIso8601String(),
@@ -112,17 +153,25 @@ class PaymentService {
   Future<List<Payment>> getPlayerPayments(String playerId) async {
     final data = await _client
         .from('payments')
-        .select()
+        .select('''
+          *,
+          reservation:reservations!payments_reservation_id_fkey(
+            player_id
+          )
+        ''')
         .order('created_at', ascending: false);
 
-    return (data as List).map((p) => Payment.fromMap(p)).toList();
+    return (data as List)
+        .where((p) => p['reservation']?['player_id'] == playerId)
+        .map((p) => Payment.fromMap(p))
+        .toList();
   }
 
   Future<double> getPlayerEarnings(String playerId) async {
     final payments = await getPlayerPayments(playerId);
     double total = 0;
     for (final p in payments) {
-      if (p.status == 'COMPLETED' && p.providerAmount != null) {
+      if (p.status == 'SUCCEEDED' && p.providerAmount != null) {
         total += p.providerAmount!;
       }
     }

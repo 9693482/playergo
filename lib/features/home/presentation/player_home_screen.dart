@@ -17,6 +17,7 @@ import '../../../shared/models/reservation.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../chat/presentation/chat_list_screen.dart';
 import '../../notifications/presentation/notifications_screen.dart';
+import '../../notifications/data/notification_service.dart';
 import '../../profile/presentation/player_profile_screen.dart';
 import '../../reservations/data/reservation_service.dart';
 import '../../reservations/presentation/requests_screen.dart';
@@ -220,18 +221,7 @@ class _PlayerDashboard extends ConsumerWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            IconButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              ),
-              icon: const Icon(
-                Icons.notifications_outlined,
-                color: AppColors.darkTextPrimary,
-                size: 26,
-              ),
-              tooltip: 'Notificaciones',
-            ),
+            _NotificationBell(),
             IconButton(
               onPressed: () async {
                 await ref.read(authServiceProvider).signOut();
@@ -610,6 +600,72 @@ class _EmptyStateCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NotificationBell extends StatefulWidget {
+  @override
+  State<_NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<_NotificationBell> {
+  final _service = NotificationService();
+  int _unreadCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCount();
+  }
+
+  Future<void> _loadCount() async {
+    final count = await _service.getUnreadCount();
+    if (mounted) setState(() => _unreadCount = count);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        IconButton(
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+            _loadCount();
+          },
+          icon: Icon(
+            _unreadCount > 0 ? Icons.notifications : Icons.notifications_outlined,
+            color: _unreadCount > 0 ? AppColors.primary : AppColors.darkTextPrimary,
+            size: 26,
+          ),
+          tooltip: 'Notificaciones',
+        ),
+        if (_unreadCount > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: const BoxDecoration(
+                color: AppColors.error,
+                shape: BoxShape.circle,
+              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(
+                _unreadCount > 99 ? '99+' : _unreadCount.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

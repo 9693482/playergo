@@ -60,14 +60,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   Future<void> _loadDocument() async {
     final doc = await _verificationService.getMyDocument();
-    setState(() {
-      _document = doc;
-      if (doc != null) {
-        _selectedDocType = doc.documentType;
-        _documentNumberController.text = doc.documentNumber;
-      }
-      _isLoading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _document = doc;
+        if (doc != null) {
+          _selectedDocType = doc.documentType;
+          _documentNumberController.text = doc.documentNumber;
+        }
+        _isLoading = false;
+      });
+    }
   }
 
   Future<String?> _uploadIfNeeded(XFile? image, String kind) async {
@@ -85,6 +87,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   Future<void> _submitDocument() async {
     if (_documentNumberController.text.trim().isEmpty) return;
+    if (!mounted) return;
 
     setState(() => _isSubmitting = true);
 

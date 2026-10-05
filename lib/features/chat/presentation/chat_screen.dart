@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../data/chat_service.dart';
 
-class ChatScreen extends StatefulWidget {
+class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
   final String otherName;
 
@@ -17,20 +19,30 @@ class ChatScreen extends StatefulWidget {
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _chatService = ChatService();
   final _controller = TextEditingController();
   final _scrollController = ScrollController();
   List<Message> _messages = [];
   bool _isLoading = true;
+  Stream<List<Message>>? _messageStream;
 
   @override
   void initState() {
     super.initState();
-    _loadMessages();
+    _messageStream = _chatService.watchMessages(widget.chatId);
+    _messageStream!.listen((messages) {
+      if (!mounted) return;
+      final wasEmpty = _messages.isEmpty;
+      setState(() {
+        _messages = messages;
+        _isLoading = false;
+      });
+      if (wasEmpty || messages.isNotEmpty) _scrollToBottom();
+    });
     _chatService.markAsRead(widget.chatId);
   }
 
@@ -39,15 +51,6 @@ class _ChatScreenState extends State<ChatScreen> {
     _controller.dispose();
     _scrollController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadMessages() async {
-    final messages = await _chatService.getMessages(widget.chatId);
-    setState(() {
-      _messages = messages;
-      _isLoading = false;
-    });
-    _scrollToBottom();
   }
 
   void _scrollToBottom() {
@@ -68,6 +71,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _controller.clear();
     await _chatService.sendMessage(widget.chatId, text);
+    _scrollToBottom();
   }
 
   String _formatTime(DateTime date) {
@@ -172,7 +176,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   String _getMyRole() {
-    return 'player';
+    final profile = ref.read(currentProfileProvider).valueOrNull;
+    if (profile == null) return 'player';
+    return profile.role.name;
   }
 }
 

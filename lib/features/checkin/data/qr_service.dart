@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/logging/app_logger.dart';
+
 class QRToken {
   final String id;
   final String reservationId;
@@ -70,9 +72,19 @@ class CheckIn {
 class QRService {
   final SupabaseClient _client = Supabase.instance.client;
 
-  static const String _secretKey = 'playergo_qr_secret_2024';
   static const int _tokenLength = 32;
   static const int _expiryMinutes = 60;
+
+  String get _secretKey {
+    const key = String.fromEnvironment('QR_HMAC_SECRET');
+    if (key.isEmpty) {
+      throw Exception(
+        'QR_HMAC_SECRET no está definido. '
+        'Usa --dart-define=QR_HMAC_SECRET=tu_clave_secreta al compilar.',
+      );
+    }
+    return key;
+  }
 
   String _generateToken() {
     final random = Random.secure();
@@ -95,6 +107,7 @@ class QRService {
     required String playerId,
     required String teamId,
   }) async {
+    AppLogger.info('Generando QR token: reserva=$reservationId');
     await _client.from('qr_tokens').update({
       'is_used': true,
       'used_at': DateTime.now().toIso8601String(),
@@ -132,6 +145,7 @@ class QRService {
   }
 
   Future<Map<String, dynamic>> validateToken(String token) async {
+    AppLogger.debug('Validando QR token');
     final data = await _client
         .from('qr_tokens')
         .select()
@@ -139,20 +153,24 @@ class QRService {
         .maybeSingle();
 
     if (data == null) {
+      AppLogger.warning('QR token no encontrado');
       return {'valid': false, 'error': 'Token no encontrado'};
     }
 
     final qrToken = QRToken.fromMap(data);
 
     if (qrToken.isUsed) {
+      AppLogger.warning('QR token ya fue escaneado');
       return {'valid': false, 'error': 'QR ya fue escaneado'};
     }
 
     if (qrToken.expiresAt.isBefore(DateTime.now())) {
+      AppLogger.warning('QR token expirado');
       return {'valid': false, 'error': 'QR expirado'};
     }
 
     if (!_verifySignature(qrToken.token, qrToken.signature)) {
+      AppLogger.warning('QR token firma inválida');
       return {'valid': false, 'error': 'Firma inválida'};
     }
 
@@ -178,6 +196,7 @@ class QRService {
     double? longitude,
     String? deviceId,
   }) async {
+    AppLogger.info('Procesando check-in: reserva=$reservationId');
     final existing = await _client
         .from('check_ins')
         .select()

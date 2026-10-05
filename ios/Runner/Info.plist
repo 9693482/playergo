@@ -68,5 +68,20 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>PlayerGO usa la cámara para escanear códigos QR de check-in.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>PlayerGO accede a tu galería para subir fotos de perfil y documentos de verificación.</string>
+		<key>NSPhotoLibraryAddUsageDescription</key>
+		<string>PlayerGO guarda fotos en tu galería cuando las descargas.</string>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>PlayerGO usa tu ubicación para mostrarte canchas y jugadores cercanos.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>PlayerGO usa tu ubicación para recomendaciones cercanas.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+			<string>fetch</string>
+		</array>
 	</dict>
 </plist>

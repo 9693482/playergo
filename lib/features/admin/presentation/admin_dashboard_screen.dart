@@ -11,11 +11,15 @@ import '../data/admin_service.dart';
 import 'admin_users_screen.dart';
 import 'admin_reservations_screen.dart';
 import 'admin_disputes_screen.dart';
+import 'admin_audit_log_screen.dart';
+import 'admin_platform_settings_screen.dart';
+import 'admin_errors_screen.dart';
 import '../../verification/presentation/admin_verification_screen.dart';
 import 'widgets/hero_summary.dart';
 import 'widgets/kpi_ring_card.dart';
 import 'widgets/management_tile.dart';
 import 'widgets/dashboard_skeleton.dart';
+import 'widgets/activity_chart.dart';
 
 /// Color turquesa para "Reservas activas" (verde/turquesa según guía visual).
 const Color _turquoise = Color(0xFF1DE9B6);
@@ -31,7 +35,10 @@ class AdminDashboardScreen extends ConsumerStatefulWidget {
 class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   final _adminService = AdminService();
   Map<String, dynamic> _stats = {};
+  List<Map<String, dynamic>> _userTrend = [];
+  List<Map<String, dynamic>> _reservationTrend = [];
   bool _isLoading = true;
+  Object? _error;
 
   @override
   void initState() {
@@ -40,11 +47,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
   }
 
   Future<void> _loadStats() async {
-    final stats = await _adminService.getDashboardStats();
     setState(() {
-      _stats = stats;
-      _isLoading = false;
+      _isLoading = true;
+      _error = null;
     });
+    try {
+      final results = await Future.wait([
+        _adminService.getDashboardStats(),
+        _adminService.getUserRegistrationTrend(),
+        _adminService.getReservationTrend(),
+      ]);
+      setState(() {
+        _stats = results[0] as Map<String, dynamic>;
+        _userTrend = results[1] as List<Map<String, dynamic>>;
+        _reservationTrend = results[2] as List<Map<String, dynamic>>;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -120,10 +144,45 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
                 const SizedBox(height: AppSpacing.xl),
                 _isLoading
                     ? const DashboardSkeleton()
-                    : _Body(
-                        stats: _stats,
-                        animate: animate,
-                      ),
+                    : _error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.error_outline,
+                                    color: AppColors.error, size: 48),
+                                const SizedBox(height: AppSpacing.md),
+                                Text(
+                                  'Error al cargar datos',
+                                  style: AppTypography.h3.copyWith(
+                                      color: AppColors.darkTextPrimary),
+                                ),
+                                const SizedBox(height: AppSpacing.sm),
+                                Text(
+                                  _error.toString(),
+                                  style: AppTypography.body2.copyWith(
+                                      color: AppColors.darkTextSecondary),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                                ElevatedButton.icon(
+                                  onPressed: _loadStats,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Reintentar'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: AppColors.textOnPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _Body(
+                            stats: _stats,
+                            userTrend: _userTrend,
+                            reservationTrend: _reservationTrend,
+                            animate: animate,
+                          ),
               ],
             ),
           ),
@@ -135,9 +194,16 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
 
 class _Body extends StatelessWidget {
   final Map<String, dynamic> stats;
+  final List<Map<String, dynamic>> userTrend;
+  final List<Map<String, dynamic>> reservationTrend;
   final bool animate;
 
-  const _Body({required this.stats, required this.animate});
+  const _Body({
+    required this.stats,
+    required this.userTrend,
+    required this.reservationTrend,
+    required this.animate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -282,6 +348,36 @@ class _Body extends StatelessWidget {
           MaterialPageRoute(builder: (_) => const AdminDisputesScreen()),
         ),
       ),
+      ManagementTile(
+        icon: Icons.history,
+        title: 'Historial de auditoría',
+        subtitle: 'Registro de acciones administrativas',
+        animate: animate,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminAuditLogScreen()),
+        ),
+      ),
+      ManagementTile(
+        icon: Icons.settings_outlined,
+        title: 'Configuración de plataforma',
+        subtitle: 'Comisiones, precios, cancelaciones',
+        animate: animate,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminPlatformSettingsScreen()),
+        ),
+      ),
+      ManagementTile(
+        icon: Icons.bug_report_outlined,
+        title: 'Errores de la app',
+        subtitle: 'Monitoreo de errores en tiempo real',
+        animate: animate,
+        onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const AdminErrorsScreen()),
+        ),
+      ),
     ];
 
     return Column(
@@ -301,6 +397,15 @@ class _Body extends StatelessWidget {
           delay: const Duration(milliseconds: 120),
           animate: animate,
           child: kpiSection,
+        ),
+        const SizedBox(height: AppSpacing.xxl),
+        AnimatedEntrance(
+          delay: const Duration(milliseconds: 200),
+          animate: animate,
+          child: ActivityChart(
+            userTrend: userTrend,
+            reservationTrend: reservationTrend,
+          ),
         ),
         const SizedBox(height: AppSpacing.xxl),
         Text(

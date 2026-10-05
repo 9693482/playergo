@@ -1,6 +1,5 @@
 ﻿import 'package:flutter/material.dart';
 
-import '../../../core/feedback/app_feedback.dart';
 import '../../../core/logging/app_logger.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/widgets/animated_entrance.dart';
@@ -12,6 +11,7 @@ import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_typography.dart';
 import '../data/admin_service.dart';
+import 'admin_user_detail_screen.dart';
 
 class AdminUsersScreen extends StatefulWidget {
   const AdminUsersScreen({super.key});
@@ -74,29 +74,6 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         _isLoading = false;
         _isLoadingMore = false;
       });
-    }
-  }
-
-  Future<void> _toggleBan(Map<String, dynamic> user) async {
-    final isBanned = user['verification_status'] == 'REJECTED';
-    try {
-      if (isBanned) {
-        await _adminService.unbanUser(user['id']);
-      } else {
-        await _adminService.banUser(user['id']);
-      }
-      await _loadUsers(reset: true);
-      if (mounted) {
-        AppFeedback.showSuccess(
-          context,
-          isBanned ? 'Usuario desbaneado' : 'Usuario baneado',
-        );
-      }
-    } catch (e) {
-      AppLogger.error('Error al cambiar estado de usuario', e);
-      if (mounted) {
-        AppFeedback.showError(context, 'No se pudo actualizar el usuario');
-      }
     }
   }
 
@@ -202,39 +179,19 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
                                             : AppColors.darkTextSecondary,
                                       ),
                                     ),
-                                    trailing: PopupMenuButton(
-                                      icon: const Icon(
-                                        Icons.more_vert,
-                                        color: AppColors.darkTextSecondary,
-                                      ),
-                                      color: AppColors.darkSurface,
-                                      itemBuilder: (ctx) => [
-                                        PopupMenuItem(
-                                          child: ListTile(
-                                            leading: Icon(
-                                              isBanned
-                                                  ? Icons.check_circle
-                                                  : Icons.block,
-                                              color: isBanned
-                                                  ? AppColors.success
-                                                  : AppColors.error,
-                                            ),
-                                            title: Text(
-                                              isBanned
-                                                  ? 'Desbanear'
-                                                  : 'Banear',
-                                              style:
-                                                  AppTypography.body2.copyWith(
-                                                color:
-                                                    AppColors.darkTextPrimary,
-                                              ),
-                                            ),
-                                            contentPadding: EdgeInsets.zero,
-                                          ),
-                                          onTap: () => _toggleBan(user),
-                                        ),
-                                      ],
+                                    trailing: const Icon(
+                                      Icons.chevron_right,
+                                      color: AppColors.darkTextSecondary,
                                     ),
+                                    onTap: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => AdminUserDetailScreen(user: user),
+                                        ),
+                                      );
+                                      _loadUsers(reset: true);
+                                    },
                                   ),
                                 ),
                               );

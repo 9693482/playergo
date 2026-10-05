@@ -43,15 +43,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   Future<void> _loadSports() async {
     final sports = await _searchService.getSports();
-    setState(() => _sports = sports);
+    if (mounted) setState(() => _sports = sports);
   }
 
   Future<void> _loadPositions(String sportId) async {
     final positions = await _searchService.getPositions(sportId);
-    setState(() => _positions = positions);
+    if (mounted) setState(() => _positions = positions);
   }
 
   Future<void> _search() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
 
     var results = await _searchService.searchPlayers(
@@ -74,11 +75,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       }).toList();
     }
 
-    setState(() {
-      _results = results;
-      _isLoading = false;
-      _hasSearched = true;
-    });
+    if (mounted) {
+      setState(() {
+        _results = results;
+        _isLoading = false;
+        _hasSearched = true;
+      });
+    }
   }
 
   @override

@@ -31,21 +31,26 @@ class _DisputesScreenState extends State<DisputesScreen> {
   }
 
   Future<void> _loadDisputes() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final data = await _disputeService.getAllOpenDisputes();
-      setState(() {
-        _disputes = data;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _disputes = data;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _error = e;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _error = e;
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -53,10 +58,12 @@ class _DisputesScreenState extends State<DisputesScreen> {
     switch (status) {
       case 'OPEN':
         return AppColors.warning;
+      case 'UNDER_REVIEW':
+        return AppColors.primary;
       case 'RESOLVED':
         return AppColors.success;
-      case 'CLOSED':
-        return AppColors.darkTextSecondary;
+      case 'REJECTED':
+        return AppColors.error;
       default:
         return AppColors.darkTextSecondary;
     }
@@ -66,10 +73,12 @@ class _DisputesScreenState extends State<DisputesScreen> {
     switch (status) {
       case 'OPEN':
         return 'Abierta';
+      case 'UNDER_REVIEW':
+        return 'En revisión';
       case 'RESOLVED':
         return 'Resuelta';
-      case 'CLOSED':
-        return 'Cerrada';
+      case 'REJECTED':
+        return 'Rechazada';
       default:
         return status;
     }

@@ -139,8 +139,9 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'OPEN': return AppColors.warning;
+      case 'UNDER_REVIEW': return AppColors.primary;
       case 'RESOLVED': return AppColors.success;
-      case 'CLOSED': return AppColors.darkTextSecondary;
+      case 'REJECTED': return AppColors.error;
       default: return AppColors.darkTextSecondary;
     }
   }
@@ -172,8 +173,8 @@ class _AdminDisputesScreenState extends State<AdminDisputesScreen> {
             itemBuilder: (_) => [
               const PopupMenuItem(value: null, child: Text('Todas')),
               const PopupMenuItem(value: 'OPEN', child: Text('Abiertas')),
+              const PopupMenuItem(value: 'UNDER_REVIEW', child: Text('En revisión')),
               const PopupMenuItem(value: 'RESOLVED', child: Text('Resueltas')),
-              const PopupMenuItem(value: 'CLOSED', child: Text('Cerradas')),
             ],
           ),
         ],

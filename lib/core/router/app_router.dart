@@ -10,7 +10,9 @@ import '../../features/auth/providers/auth_provider.dart';
 import '../../features/home/presentation/player_home_screen.dart';
 import '../../features/home/presentation/team_home_screen.dart';
 import '../../features/admin/presentation/admin_dashboard_screen.dart';
+import '../../features/admin/presentation/admin_errors_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
+import '../../features/onboarding/presentation/profile_completion_screen.dart';
 import '../../features/reservations/presentation/reservation_deep_link_screen.dart';
 import '../../features/verification/presentation/verification_screen.dart';
 import '../../features/legal/presentation/legal_screen.dart';
@@ -21,6 +23,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/splash_screen.dart';
+import '../../core/responsive/responsive.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -54,20 +57,42 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/';
       }
 
+      final currentProfile = ref.read(currentProfileProvider).valueOrNull;
+      final isProfileIncomplete = currentProfile != null &&
+          currentProfile.role != UserRole.admin &&
+          currentProfile.phone == null &&
+          currentProfile.photoUrl == null;
+
+      if (isProfileIncomplete && state.matchedLocation != '/complete-profile') {
+        return '/complete-profile';
+      }
+
       return null;
     },
     routes: [
       GoRoute(
         path: '/onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        builder: (context, state) => const KeyboardShortcuts(
+          child: OnboardingScreen(),
+        ),
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => const KeyboardShortcuts(
+          child: LoginScreen(),
+        ),
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => const KeyboardShortcuts(
+          child: RegisterScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/complete-profile',
+        builder: (context, state) => const KeyboardShortcuts(
+          child: ProfileCompletionScreen(),
+        ),
       ),
       GoRoute(
         path: '/reservation/:id',
@@ -77,23 +102,39 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/verification',
-        builder: (context, state) => const VerificationScreen(),
+        builder: (context, state) => const KeyboardShortcuts(
+          child: VerificationScreen(),
+        ),
       ),
       GoRoute(
         path: '/legal/terms',
-        builder: (context, state) => const LegalScreen(type: 'terms'),
+        builder: (context, state) => KeyboardShortcuts(
+          child: const LegalScreen(type: 'terms'),
+        ),
       ),
       GoRoute(
         path: '/legal/privacy',
-        builder: (context, state) => const LegalScreen(type: 'privacy'),
+        builder: (context, state) => KeyboardShortcuts(
+          child: const LegalScreen(type: 'privacy'),
+        ),
       ),
       GoRoute(
         path: '/account',
-        builder: (context, state) => const AccountScreen(),
+        builder: (context, state) => const KeyboardShortcuts(
+          child: AccountScreen(),
+        ),
       ),
       GoRoute(
         path: '/create-team',
-        builder: (context, state) => const CreateTeamScreen(),
+        builder: (context, state) => const KeyboardShortcuts(
+          child: CreateTeamScreen(),
+        ),
+      ),
+      GoRoute(
+        path: '/admin/errors',
+        builder: (context, state) => const KeyboardShortcuts(
+          child: AdminErrorsScreen(),
+        ),
       ),
       GoRoute(
         path: '/',
@@ -140,11 +181,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 
               switch (p.role) {
                 case UserRole.player:
-                  return const PlayerHomeScreen();
+                  return const KeyboardShortcuts(child: PlayerHomeScreen());
                 case UserRole.team:
-                  return const TeamHomeScreen();
+                  return const KeyboardShortcuts(child: TeamHomeScreen());
                 case UserRole.admin:
-                  return const AdminDashboardScreen();
+                  return const KeyboardShortcuts(child: AdminDashboardScreen());
               }
             },
             loading: () => const SplashScreen(message: 'Cargando tu cuenta...'),

@@ -1,6 +1,8 @@
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/logging/app_logger.dart';
+
 class IdentityDocument {
   final String id;
   final String userId;
@@ -76,6 +78,7 @@ class VerificationService {
     String? selfieUrl,
   }) async {
     final userId = _client.auth.currentUser!.id;
+    AppLogger.info('Enviando documento de verificación: tipo=$documentType');
 
     final existing = await _client
         .from('identity_documents')
@@ -159,6 +162,7 @@ class VerificationService {
   }
 
   Future<void> approveDocument(String documentId) async {
+    AppLogger.info('Aprobando documento: id=$documentId');
     final doc = await _client
         .from('identity_documents')
         .select('user_id')
@@ -178,6 +182,7 @@ class VerificationService {
   }
 
   Future<void> rejectDocument(String documentId, String reason) async {
+    AppLogger.info('Rechazando documento: id=$documentId, motivo=$reason');
     final doc = await _client
         .from('identity_documents')
         .select('user_id')

@@ -1,8 +1,10 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../core/config/currency.dart';
+import '../../../core/feedback/app_feedback.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_radius.dart';
@@ -12,6 +14,7 @@ import '../../../core/widgets/animated_entrance.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../auth/data/auth_service.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../../shared/models/profile.dart';
 import '../../../shared/models/enums/enums.dart';
 import '../../ratings/presentation/rating_summary_widget.dart';
 
@@ -36,7 +39,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     super.dispose();
   }
 
-  void _initControllers(dynamic profile) {
+  void _initControllers(Profile? profile) {
     if (_initialized || profile == null) return;
     _nameController.text = profile.fullName ?? '';
     _phoneController.text = profile.phone ?? '';
@@ -87,14 +90,44 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    try {
+      return _buildContent();
+    } catch (e) {
+      return Container(
+        color: AppColors.darkBackground,
+        padding: const EdgeInsets.all(AppSpacing.xxl),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Error al cargar perfil',
+                style: AppTypography.subtitle1.copyWith(color: AppColors.darkTextPrimary),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                '$e',
+                style: AppTypography.body2.copyWith(color: AppColors.darkTextSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildContent() {
     final profile = ref.watch(currentProfileProvider);
     final player = ref.watch(currentPlayerProvider);
     final reduceMotion = MediaQuery.of(context).disableAnimations;
     final animate = !reduceMotion;
 
-    return Scaffold(
-      backgroundColor: AppColors.darkBackground,
-      body: SafeArea(
+    return Container(
+      color: AppColors.darkBackground,
+      child: SafeArea(
         child: profile.when(
           data: (p) {
             if (p == null) {
@@ -214,7 +247,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  Widget _buildAvatar(dynamic p) {
+  Widget _buildAvatar(Profile p) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxl),
@@ -226,16 +259,42 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 48,
-            backgroundColor: AppColors.primary,
-            backgroundImage: p.photoUrl != null ? NetworkImage(p.photoUrl!) : null,
-            child: p.photoUrl == null
-                ? Text(
-                    (p.fullName ?? 'J')[0].toUpperCase(),
-                    style: AppTypography.h1.copyWith(color: AppColors.textOnPrimary),
-                  )
-                : null,
+          GestureDetector(
+            onTap: () => _uploadPhoto(),
+            child: Stack(
+              children: [
+                CircleAvatar(
+                  radius: 48,
+                  backgroundColor: AppColors.primary,
+                  backgroundImage: p.photoUrl != null ? NetworkImage(p.photoUrl!) : null,
+                  child: p.photoUrl == null
+                      ? Text(
+                          (p.fullName ?? 'J')[0].toUpperCase(),
+                          style: AppTypography.h1.copyWith(color: AppColors.textOnPrimary),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppColors.darkSurface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.darkBackground, width: 2),
+                    ),
+                    child: const Icon(Icons.camera_alt, size: 16, color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            'Toca para cambiar foto',
+            style: AppTypography.caption.copyWith(color: AppColors.darkTextSecondary),
           ),
           const SizedBox(height: AppSpacing.md),
           _buildVerificationBadge(p),
@@ -244,7 +303,31 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  Widget _buildFormSection(dynamic p) {
+  Future<void> _uploadPhoto() async {
+    final picker = ImagePicker();
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 80,
+    );
+    if (image == null) return;
+
+    try {
+      final authService = ref.read(authServiceProvider);
+      await authService.uploadProfilePhoto(image);
+      ref.invalidate(currentProfileProvider);
+      if (mounted) {
+        AppFeedback.showSuccess(context, 'Foto de perfil actualizada');
+      }
+    } catch (e) {
+      if (mounted) {
+        AppFeedback.showError(context, 'Error al subir foto');
+      }
+    }
+  }
+
+  Widget _buildFormSection(Profile p) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: GlassCard(
@@ -461,7 +544,7 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  Widget _buildRatingsSection(dynamic p) {
+  Widget _buildRatingsSection(Profile p) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: GlassCard(
@@ -526,8 +609,8 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  Widget _buildVerificationBadge(dynamic p) {
-    final color = _getVerificationColor(p.verificationStatus.name);
+  Widget _buildVerificationBadge(Profile p) {
+    final color = _getVerificationColor(p.verificationStatus);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
       decoration: BoxDecoration(
@@ -537,10 +620,10 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(_getVerificationIcon(p.verificationStatus.name), size: 14, color: color),
+          Icon(_getVerificationIcon(p.verificationStatus), size: 14, color: color),
           const SizedBox(width: 4),
           Text(
-            _getVerificationText(p.verificationStatus.name),
+            _getVerificationText(p.verificationStatus),
             style: AppTypography.caption.copyWith(color: color, fontWeight: FontWeight.w600),
           ),
         ],
@@ -548,33 +631,33 @@ class _PlayerProfileScreenState extends ConsumerState<PlayerProfileScreen> {
     );
   }
 
-  Color _getVerificationColor(String? status) {
+  Color _getVerificationColor(VerificationStatus status) {
     switch (status) {
-      case 'VERIFIED': return AppColors.success;
-      case 'PENDING': return AppColors.warning;
-      case 'REJECTED': return AppColors.error;
-      case 'SUSPENDED': return AppColors.darkTextSecondary;
-      default: return AppColors.darkTextSecondary;
+      case VerificationStatus.verified: return AppColors.success;
+      case VerificationStatus.pending: return AppColors.warning;
+      case VerificationStatus.rejected: return AppColors.error;
+      case VerificationStatus.suspended: return AppColors.darkTextSecondary;
+      case VerificationStatus.unverified: return AppColors.darkTextSecondary;
     }
   }
 
-  IconData _getVerificationIcon(String? status) {
+  IconData _getVerificationIcon(VerificationStatus status) {
     switch (status) {
-      case 'VERIFIED': return Icons.verified;
-      case 'PENDING': return Icons.hourglass_top;
-      case 'REJECTED': return Icons.cancel;
-      case 'SUSPENDED': return Icons.block;
-      default: return Icons.help_outline;
+      case VerificationStatus.verified: return Icons.verified;
+      case VerificationStatus.pending: return Icons.hourglass_top;
+      case VerificationStatus.rejected: return Icons.cancel;
+      case VerificationStatus.suspended: return Icons.block;
+      case VerificationStatus.unverified: return Icons.help_outline;
     }
   }
 
-  String _getVerificationText(String? status) {
+  String _getVerificationText(VerificationStatus status) {
     switch (status) {
-      case 'VERIFIED': return 'Verificado';
-      case 'PENDING': return 'En revisión';
-      case 'REJECTED': return 'Rechazado';
-      case 'SUSPENDED': return 'Suspendido';
-      default: return 'Sin verificar';
+      case VerificationStatus.verified: return 'Verificado';
+      case VerificationStatus.pending: return 'En revisión';
+      case VerificationStatus.rejected: return 'Rechazado';
+      case VerificationStatus.suspended: return 'Suspendido';
+      case VerificationStatus.unverified: return 'Sin verificar';
     }
   }
 }
