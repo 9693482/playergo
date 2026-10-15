@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/logging/app_logger.dart';
 import '../../../core/responsive/responsive.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -52,22 +53,28 @@ class _AdminDashboardScreenState extends ConsumerState<AdminDashboardScreen> {
       _error = null;
     });
     try {
+      AppLogger.info('AdminDashboard: cargando stats...');
       final results = await Future.wait([
         _adminService.getDashboardStats(),
         _adminService.getUserRegistrationTrend(),
         _adminService.getReservationTrend(),
-      ]);
+      ]).timeout(const Duration(seconds: 15));
+      AppLogger.info('AdminDashboard: stats cargados correctamente');
+      if (!mounted) return;
       setState(() {
         _stats = results[0] as Map<String, dynamic>;
         _userTrend = results[1] as List<Map<String, dynamic>>;
         _reservationTrend = results[2] as List<Map<String, dynamic>>;
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() {
-        _error = e;
-        _isLoading = false;
-      });
+    } catch (e, stack) {
+      AppLogger.error('AdminDashboard: error cargando stats', e, stack);
+      if (mounted) {
+        setState(() {
+          _error = e;
+          _isLoading = false;
+        });
+      }
     }
   }
 

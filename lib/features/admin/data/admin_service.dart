@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/logging/app_logger.dart';
+
 class AdminService {
   final SupabaseClient _client = Supabase.instance.client;
 
@@ -17,85 +19,129 @@ class AdminService {
   }
 
   Future<Map<String, dynamic>> getDashboardStats() async {
-    final users = await _client.from('profiles').select('id');
-    final players = await _client.from('players').select('id');
-    final teams = await _client.from('teams').select('id');
-    final reservations = await _client.from('reservations').select('id');
-    final activeReservations = await _client
-        .from('reservations')
-        .select('id')
-        .inFilter('status', ['PENDING', 'ACCEPTED', 'CONFIRMED']);
-    final disputes = await _client
-        .from('disputes')
-        .select('id')
-        .eq('status', 'OPEN');
+    int users = 0, players = 0, teams = 0, reservations = 0, active = 0, disputes = 0;
+
+    try {
+      final usersData = await _client.from('profiles').select('id');
+      users = (usersData as List).length;
+    } catch (e) {
+      AppLogger.warning('getDashboardStats: profiles error', e);
+    }
+    try {
+      final playersData = await _client.from('players').select('id');
+      players = (playersData as List).length;
+    } catch (e) {
+      AppLogger.warning('getDashboardStats: players error', e);
+    }
+    try {
+      final teamsData = await _client.from('teams').select('id');
+      teams = (teamsData as List).length;
+    } catch (e) {
+      AppLogger.warning('getDashboardStats: teams error', e);
+    }
+    try {
+      final resData = await _client.from('reservations').select('id');
+      reservations = (resData as List).length;
+    } catch (e) {
+      AppLogger.warning('getDashboardStats: reservations error', e);
+    }
+    try {
+      final activeData = await _client
+          .from('reservations')
+          .select('id')
+          .inFilter('status', ['PENDING', 'ACCEPTED', 'CONFIRMED']);
+      active = (activeData as List).length;
+    } catch (e) {
+      AppLogger.warning('getDashboardStats: active reservations error', e);
+    }
+    try {
+      final disputesData = await _client
+          .from('disputes')
+          .select('id')
+          .eq('status', 'OPEN');
+      disputes = (disputesData as List).length;
+    } catch (e) {
+      AppLogger.warning('getDashboardStats: disputes error', e);
+    }
 
     return {
-      'totalUsers': (users as List).length,
-      'totalPlayers': (players as List).length,
-      'totalTeams': (teams as List).length,
-      'totalReservations': (reservations as List).length,
-      'activeReservations': (activeReservations as List).length,
-      'openDisputes': (disputes as List).length,
+      'totalUsers': users,
+      'totalPlayers': players,
+      'totalTeams': teams,
+      'totalReservations': reservations,
+      'activeReservations': active,
+      'openDisputes': disputes,
     };
   }
 
   Future<List<Map<String, dynamic>>> getUserRegistrationTrend() async {
-    final now = DateTime.now();
-    final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
-    final data = await _client
-        .from('profiles')
-        .select('created_at')
-        .gte('created_at', sixMonthsAgo.toIso8601String())
-        .order('created_at', ascending: true);
+    try {
+      final now = DateTime.now();
+      final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+      final data = await _client
+          .from('profiles')
+          .select('created_at')
+          .gte('created_at', sixMonthsAgo.toIso8601String())
+          .order('created_at', ascending: true);
 
-    final Map<String, int> monthly = {};
-    for (final row in data as List) {
-      final date = DateTime.parse(row['created_at'] as String);
-      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-      monthly[key] = (monthly[key] ?? 0) + 1;
-    }
+      final Map<String, int> monthly = {};
+      for (final row in data as List) {
+        final date = DateTime.parse(row['created_at'] as String);
+        final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+        monthly[key] = (monthly[key] ?? 0) + 1;
+      }
 
-    final result = <Map<String, dynamic>>[];
-    for (int i = 0; i < 6; i++) {
-      final date = DateTime(now.year, now.month - 5 + i, 1);
-      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-      final label = _monthLabel(date.month);
-      result.add({
-        'month': label,
-        'count': monthly[key] ?? 0,
-      });
+      final result = <Map<String, dynamic>>[];
+      for (int i = 0; i < 6; i++) {
+        final date = DateTime(now.year, now.month - 5 + i, 1);
+        final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+        final label = _monthLabel(date.month);
+        result.add({'month': label, 'count': monthly[key] ?? 0});
+      }
+      return result;
+    } catch (e) {
+      AppLogger.warning('getUserRegistrationTrend error', e);
+      return _emptyTrend();
     }
-    return result;
   }
 
   Future<List<Map<String, dynamic>>> getReservationTrend() async {
+    try {
+      final now = DateTime.now();
+      final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
+      final data = await _client
+          .from('reservations')
+          .select('created_at')
+          .gte('created_at', sixMonthsAgo.toIso8601String())
+          .order('created_at', ascending: true);
+
+      final Map<String, int> monthly = {};
+      for (final row in data as List) {
+        final date = DateTime.parse(row['created_at'] as String);
+        final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+        monthly[key] = (monthly[key] ?? 0) + 1;
+      }
+
+      final result = <Map<String, dynamic>>[];
+      for (int i = 0; i < 6; i++) {
+        final date = DateTime(now.year, now.month - 5 + i, 1);
+        final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
+        final label = _monthLabel(date.month);
+        result.add({'month': label, 'count': monthly[key] ?? 0});
+      }
+      return result;
+    } catch (e) {
+      AppLogger.warning('getReservationTrend error', e);
+      return _emptyTrend();
+    }
+  }
+
+  List<Map<String, dynamic>> _emptyTrend() {
     final now = DateTime.now();
-    final sixMonthsAgo = DateTime(now.year, now.month - 5, 1);
-    final data = await _client
-        .from('reservations')
-        .select('created_at')
-        .gte('created_at', sixMonthsAgo.toIso8601String())
-        .order('created_at', ascending: true);
-
-    final Map<String, int> monthly = {};
-    for (final row in data as List) {
-      final date = DateTime.parse(row['created_at'] as String);
-      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-      monthly[key] = (monthly[key] ?? 0) + 1;
-    }
-
-    final result = <Map<String, dynamic>>[];
-    for (int i = 0; i < 6; i++) {
+    return List.generate(6, (i) {
       final date = DateTime(now.year, now.month - 5 + i, 1);
-      final key = '${date.year}-${date.month.toString().padLeft(2, '0')}';
-      final label = _monthLabel(date.month);
-      result.add({
-        'month': label,
-        'count': monthly[key] ?? 0,
-      });
-    }
-    return result;
+      return {'month': _monthLabel(date.month), 'count': 0};
+    });
   }
 
   String _monthLabel(int month) {
