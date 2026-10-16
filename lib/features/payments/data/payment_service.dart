@@ -104,6 +104,25 @@ class PaymentService {
     required String currency,
     String? reservationId,
   }) async {
+    if (!stripeConfigured) {
+      AppLogger.info('Stripe no disponible (web/desconfigurado): modo demo');
+      final simulated = await _stripeService.confirmPayment(
+        clientSecret: '',
+        amount: amount,
+        currency: currency,
+        reservationId: reservationId,
+      );
+      if (!simulated) {
+        await failPayment(paymentId);
+        return false;
+      }
+      await processPayment(
+        paymentId: paymentId,
+        stripePaymentIntentId: 'demo_${DateTime.now().millisecondsSinceEpoch}',
+      );
+      return true;
+    }
+
     final intent = await createPaymentIntent(
       amount: amount,
       currency: currency,

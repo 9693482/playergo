@@ -239,7 +239,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 child: Text(
                                   _paymentService.stripeConfigured
                                       ? 'Pago seguro con Stripe. Se abrirá la hoja de pago.'
-                                      : 'Modo demo: el pago se procesa sin tarjeta real. Configure STRIPE_PUBLISHABLE_KEY para pagos reales.',
+                                      : 'Modo demo: el pago se simula sin tarjeta real. La hoja de pago de Stripe solo está disponible en la app móvil (Android/iOS).',
                                   style: AppTypography.caption.copyWith(
                                     color: AppColors.info,
                                   ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -10,7 +11,10 @@ class StripeService {
 
   bool _initialized = false;
 
-  bool get isConfigured => Env.stripePublishableKey.isNotEmpty;
+  /// El SDK nativo de Stripe (payment sheet) solo existe en Android/iOS.
+  /// En web no hay soporte, por lo que se usa el flujo de confirmación
+  /// server-side (Edge Function) sin hoja de pago nativa.
+  bool get isConfigured => !kIsWeb && Env.stripePublishableKey.isNotEmpty;
 
   Future<void> initialize() async {
     if (_initialized || !isConfigured) return;
