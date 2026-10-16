@@ -1,0 +1,25 @@
+name: Supabase Keep-Alive
+
+# Evita que Supabase pause el proyecto (free tier) por inactividad.
+# Un proyecto free se pausa tras 7 días sin actividad de base de datos.
+# Este workflow hace una consulta REST cada 3 días para mantenerlo activo.
+
+on:
+  schedule:
+    - cron: '0 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase (actividad de base de datos)
+        run: |
+          URL="${{ secrets.SUPABASE_URL || 'https://vbsllisbumwemymqqluk.supabase.co' }}"
+          KEY="${{ secrets.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZic2xsaXNidW13ZW15bXFxbHVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NDY4MjAsImV4cCI6MjEwMzAyMjgyMH0.twzpFnlA_PJdSrJYJd5dOeS3zPMEKoghzieofx39y6E' }}"
+          CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+            "$URL/rest/v1/reservations?select=id&limit=1" \
+            -H "apikey: $KEY" \
+            -H "Authorization: Bearer $KEY")
+          echo "HTTP $CODE"
+          test "$CODE" = "200"
